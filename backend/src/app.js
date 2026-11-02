@@ -67,7 +67,11 @@ export function createApp(ctx) {
       res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     }
     if (req.method === "OPTIONS") return res.status(204).end();
-    if (req.method !== "GET" && req.headers["x-pharos-token"] !== csrf)
+    if (
+      !ctx.config.vercel &&
+      req.method !== "GET" &&
+      req.headers["x-pharos-token"] !== csrf
+    )
       return res
         .status(403)
         .json({ error: { message: "Missing local session token" } });
