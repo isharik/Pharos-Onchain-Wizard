@@ -233,6 +233,12 @@ header {
   font-size: 11px;
   padding: 7px 10px;
 }
+.wallet-disconnect {
+  color: var(--muted);
+}
+.wallet-disconnect:hover {
+  color: #b83a3a;
+}
 .main main {
   max-width: 1550px;
   margin: auto;

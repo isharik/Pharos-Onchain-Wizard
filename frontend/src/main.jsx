@@ -8,6 +8,7 @@ import {
   Wallet,
   ArrowUpRight,
   RefreshCw,
+  LogOut,
   Menu,
   Search,
 } from "lucide-react";
@@ -107,6 +108,10 @@ function App() {
     } catch (e) {
       setError(e.message);
     }
+  }
+  function disconnect() {
+    setAccount("");
+    setError("");
   }
   if (!boot)
     return (
@@ -232,12 +237,27 @@ function App() {
             <span
               className={`dot ${health?.rpc.status === "connected" ? "green" : ""}`}
             />
-            <button className="wallet-button" onClick={connect}>
-              <Wallet size={14} />
-              {account
-                ? `${account.slice(0, 6)}…${account.slice(-4)}`
-                : "Connect wallet"}
-            </button>
+            {account ? (
+              <>
+                <button className="wallet-button" onClick={disconnect}>
+                  <Wallet size={14} />
+                  {`${account.slice(0, 6)}…${account.slice(-4)}`}
+                </button>
+                <button
+                  className="icon wallet-disconnect"
+                  onClick={disconnect}
+                  aria-label="Disconnect wallet"
+                  title="Disconnect wallet"
+                >
+                  <LogOut size={15} />
+                </button>
+              </>
+            ) : (
+              <button className="wallet-button" onClick={connect}>
+                <Wallet size={14} />
+                Connect wallet
+              </button>
+            )}
           </div>
         </header>
         <main>
@@ -478,9 +498,17 @@ function App() {
                 <section className="panel narrow">
                   <h2>Wallet connection</h2>
                   <p>{account || "No wallet connected"}</p>
-                  <button className="primary" onClick={connect}>
-                    Connect wallet
-                  </button>
+                  {account ? (
+                    <button className="secondary" onClick={disconnect}>
+                      <LogOut size={14} />
+                      Disconnect wallet
+                    </button>
+                  ) : (
+                    <button className="primary" onClick={connect}>
+                      <Wallet size={14} />
+                      Connect wallet
+                    </button>
+                  )}
                   <p className="note">
                     {walletProvider
                       ? "A browser wallet was detected. Connect it to continue."
