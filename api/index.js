@@ -16,11 +16,16 @@ function createHandler() {
     ALLOW_PUBLIC_ACCESS: "true",
     PUBLIC_ORIGIN: process.env.PUBLIC_ORIGIN || deploymentOrigin,
   });
-  const ctx = createContext(config);
-  return createApp(ctx).app;
+  return createApp(createContext(config)).app;
 }
 
 export default function pharosApi(request, response) {
+  const url = new URL(request.url, "http://localhost");
+  const path = url.searchParams.get("path");
+  if (path) {
+    url.searchParams.delete("path");
+    request.url = `/api/${path.replace(/^\/+/, "")}${url.search}`;
+  }
   handler ||= createHandler();
   return handler(request, response);
 }

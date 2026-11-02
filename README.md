@@ -96,7 +96,7 @@ Redeploy Vercel after setting the variable. This mode makes the shared workspace
 
 ## Vercel-only review deployment
 
-The repository also includes a same-origin Vercel Function at `/api/*`, so a reviewer can deploy one Vercel project without Render or an administrator login. Before redeploying, remove `VITE_API_BASE_URL` from Vercel Environment Variables so the frontend calls its own `/api` route. Keep the Vite defaults (`npm run build`, output directory `dist`, root `./`) and redeploy.
+The repository also includes a same-origin Vercel Function at `/api/*`, so a reviewer can deploy one Vercel project without Render or an administrator login. Before redeploying, remove `VITE_API_BASE_URL` from Vercel Environment Variables so the frontend calls its own `/api` route. Keep the Vite defaults (`npm run build`, output directory `dist`, root `./`) and redeploy. The versioned rewrite sends every nested API route to the function without interfering with the Vite app.
 
 Vercel Functions may be recycled at any time. Their `/tmp` database and scheduled monitor loop are therefore not durable. Use the Render deployment with a persistent disk for durable activity history and continuous monitors.
 
