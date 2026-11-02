@@ -244,7 +244,7 @@ function App() {
             </Suspense>
           ) : (
             <>
-              <div className="page-heading">
+              {page !== "home" && <div className="page-heading">
                 <div>
                   <p className="eyebrow">PHAROS WORKSPACE</p>
                   <h1>{title}</h1>
@@ -260,7 +260,7 @@ function App() {
                   <RefreshCw size={14} />
                   Refresh
                 </button>
-              </div>
+              </div>}
               {page === "dashboard" && (
                 <>
                   <div className="stats">
@@ -407,7 +407,7 @@ function App() {
                     <p className="eyebrow">ON-CHAIN OPERATIONS WORKSPACE</p>
                     <h1>Pharos Onchain<br />Wizard</h1>
                     <p>Operate, monitor, and verify Pharos workflows from one secure, non-custodial workspace.</p>
-                    <div className="hero-actions"><a className="primary" href="#dashboard">Open dashboard</a><a className="secondary hero-link" href="#doc-search">Explore features</a></div>
+                    <div className="hero-actions"><a className="primary hero-primary" href="#dashboard">Open dashboard <ArrowUpRight size={15} /></a><a className="secondary hero-link" href="#doc-search">Explore features <span aria-hidden="true">→</span></a></div>
                     <div className="hero-foot"><span>{boot.modules.length} guided features</span><span>Real chain evidence</span><span>Explicit signatures only</span></div>
                   </div>
                 </section>
