@@ -5,7 +5,7 @@ Last checked: 2 November 2026. This report records observed results, not a produ
 ## Completed checks
 
 - All 17 original feature specifications are represented by independent backend executors and dedicated interactive screens. All 72 numbered requirements are mapped in [acceptance.md](acceptance.md).
-- `npm test`: 71 tests passed, zero failures. Includes every feature's validation, core decision paths, failure handling, persistent state, transaction authorization boundaries, HTTP routes, and administrator login/logout.
+- `npm test`: 72 tests passed, zero failures. Includes every feature's validation, core decision paths, failure handling, persistent state, transaction authorization boundaries, HTTP routes, and administrator login/logout.
 - `npm run build`: production build passed.
 - `npm audit --omit=dev`: zero reported vulnerabilities at this check.
 - The default Threshold Guardian configuration was executed against mainnet: gas price, zero-address balance and current block all passed at block `21943040`, resulting in a read-only `fire` decision. See [default-threshold.json](evidence/default-threshold.json).
