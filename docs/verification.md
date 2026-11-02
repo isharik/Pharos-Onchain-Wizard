@@ -25,12 +25,13 @@ Last checked: 2 November 2026. This report records observed results, not a produ
 | Skill + Chain MCP Flow | Live MCP data feeds decision in the same request | [demo-readonly.json](evidence/demo-readonly.json) |
 | Docs + Chain MCP Agent | Sourced explanation and balanceOf calls against two actual token contracts | [docs-demo.json](evidence/docs-demo.json) |
 | Event/Log Monitor | Real transfers decoded; repeat poll returned no duplicates | [live-check.json](evidence/live-check.json) |
+| Multi-Protocol Aggregator | Two live ERC-4626 vaults with the same USDC asset queried and ranked | [aggregator-live.json](evidence/aggregator-live.json) |
 
 The team confirmed llms.txt as its Dev Docs interface. The working official download is `https://www.pharos.xyz/llms.txt`; the screenshot's `/agent-center/llms.txt` path returns 404. This is HTTPS index retrieval, not a fabricated MCP transport. SkillEngine is an installable skill package using Foundry; it is not a remote execution API.
 
 ## Outstanding work — not marked complete
 
-- Live protocol configuration and acceptance demonstrations for Arbitrage Scanner, Yield Optimizer, Liquidation Watchdog, and Multi-Protocol Aggregator. Generic ABI and ERC-4626 adapters exist, but verified deployment presets and real protocol runs remain to be completed.
+- Live protocol configuration and acceptance demonstrations for Arbitrage Scanner, Yield Optimizer, and Liquidation Watchdog. Generic ABI adapters exist, but verified price, yield, and lending-position inputs remain to be completed. The Aggregator has a verified read-only vault query; its signed deposit and withdrawal flows remain unverified.
 - Wallet-signed saga success, forced failure and compensation; live payment confirmation; deposit/withdrawal signing. No funds were moved, keys requested, or transactions signed during development. These require a user-controlled funded test wallet and explicit authorization.
 - Real external alert delivery requires a configured Telegram bot/chat or Discord webhook. Unit tests do not substitute for delivery evidence.
 - Production deployment, load testing, independent security review, and multi-user tenancy are not completed. Public self-hosting supports one password-protected shared administrator workspace behind HTTPS.

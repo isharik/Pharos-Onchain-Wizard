@@ -101,9 +101,12 @@ Connect an EIP-1193 browser wallet on the configured chain. Enter its public add
 
 ```sh
 npm run cli -- threshold config/example.json
+npm run cli -- aggregator config/aggregator-live.json
 npm run cli -- events config/events-live.json
 npm run cli -- doc-search "How do I deploy a contract?" index
 ```
+
+`aggregator-live.json` is a read-only comparison of two independently verified Pharos mainnet ERC-4626 vaults. Its zero-address owner is safe for anyone to run; replace it with your own address only when querying personal balances or preparing a wallet-signed action.
 
 For other modules use their CLI name and a JSON input file matching the labelled dashboard fields. **Copy JSON** exports usable input. JSON editor contents are validated before execution. Empty contract addresses in templates are required configuration, not fake contracts.
 

@@ -1,0 +1,31 @@
+{
+  "checkedAt": "2026-11-02T15:44:43.037Z",
+  "network": { "chainId": 1672, "name": "Pharos Mainnet" },
+  "action": "query",
+  "amount": "1 USDC",
+  "owner": "0x0000000000000000000000000000000000000000",
+  "result": {
+    "block": "0x14ed69f",
+    "selected": "R25 Axil Consumer Credit · 7D",
+    "reason": "Highest asset-equivalent deposit preview among available vaults with sufficient capacity",
+    "venues": [
+      {
+        "name": "R25 Axil Consumer Credit · 7D",
+        "address": "0x1c2bc8b553d9a7e61f7531a3a4bf2162f4569268",
+        "asset": "0xC879C018dB60520F4355C26eD1a6D572cdAC1815",
+        "previewShares": "975182",
+        "assetEquivalent": "999999",
+        "capacity": "3042490986557"
+      },
+      {
+        "name": "R25 Axil Consumer Credit · 6M",
+        "address": "0xee26bb0989691735c997dfdc49a4a607f75e190b",
+        "asset": "0xC879C018dB60520F4355C26eD1a6D572cdAC1815",
+        "previewShares": "943298",
+        "assetEquivalent": "999999",
+        "capacity": "594359068925"
+      }
+    ]
+  },
+  "notes": "Both vaults returned the same USDC asset. This proves a read-only query only; no approval, deposit, withdrawal, signature, or broadcast occurred."
+}

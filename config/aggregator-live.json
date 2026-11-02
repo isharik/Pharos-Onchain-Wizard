@@ -1,0 +1,15 @@
+{
+  "vaults": [
+    {
+      "name": "R25 Axil Consumer Credit · 7D",
+      "address": "0x1c2bc8b553d9a7e61f7531a3a4bf2162f4569268"
+    },
+    {
+      "name": "R25 Axil Consumer Credit · 6M",
+      "address": "0xee26bb0989691735c997dfdc49a4a607f75e190b"
+    }
+  ],
+  "owner": "0x0000000000000000000000000000000000000000",
+  "action": "query",
+  "amount": "1"
+}

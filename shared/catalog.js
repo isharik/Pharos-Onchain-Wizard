@@ -348,10 +348,22 @@ export const catalog = [
     dependencies: ["rpc", "wallet"],
     fields: [
       field("vaults", "ERC-4626 vaults (at least 2)", "json", [
-        { name: "Vault A", address: "" },
-        { name: "Vault B", address: "" },
+        {
+          name: "R25 Axil Consumer Credit · 7D",
+          address: "0x1c2bc8b553d9a7e61f7531a3a4bf2162f4569268",
+        },
+        {
+          name: "R25 Axil Consumer Credit · 6M",
+          address: "0xee26bb0989691735c997dfdc49a4a607f75e190b",
+        },
       ]),
-      field("owner", "Wallet address"),
+      field(
+        "owner",
+        "Wallet address",
+        "text",
+        "0x0000000000000000000000000000000000000000",
+        "Use your wallet for a personal query or any deposit/withdrawal preparation.",
+      ),
       field("action", "Action", "select", "query", "query,deposit,withdraw"),
       field("amount", "Asset amount", "text", "1"),
     ],
