@@ -24,6 +24,14 @@ export function createApp(ctx) {
       ctx.config.publicOrigin,
       ctx.config.corsOrigin,
     ].filter(Boolean);
+    const sameVercelOrigin = (() => {
+      if (!ctx.config.vercel || !req.headers.origin) return false;
+      try {
+        return new URL(req.headers.origin).host === req.headers.host;
+      } catch {
+        return false;
+      }
+    })();
     if (
       !ctx.config.vercel &&
       ![
@@ -46,7 +54,11 @@ export function createApp(ctx) {
       "Content-Security-Policy",
       "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
     );
-    if (req.headers.origin && !acceptedOrigins.includes(req.headers.origin))
+    if (
+      req.headers.origin &&
+      !acceptedOrigins.includes(req.headers.origin) &&
+      !sameVercelOrigin
+    )
       return res.status(403).json({ error: { message: "Origin not allowed" } });
     if (req.headers.origin && acceptedOrigins.includes(req.headers.origin)) {
       res.setHeader("Access-Control-Allow-Origin", req.headers.origin);

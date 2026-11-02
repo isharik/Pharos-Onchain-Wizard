@@ -35,7 +35,8 @@ function App() {
     [filter, setFilter] = useState(""),
     [mobile, setMobile] = useState(false),
     [jobs, setJobs] = useState([]),
-    [auth, setAuth] = useState(null);
+    [auth, setAuth] = useState(null),
+    [walletProvider, setWalletProvider] = useState(null);
   const refresh = async () => {
     const results = await Promise.allSettled([
       api("/health"),
@@ -74,14 +75,32 @@ function App() {
   }, [boot]);
   useEffect(() => {
     const changed = (accounts) => setAccount(accounts[0] || "");
-    window.ethereum?.on?.("accountsChanged", changed);
-    return () => window.ethereum?.removeListener?.("accountsChanged", changed);
+    const provider = walletProvider || window.ethereum;
+    provider?.on?.("accountsChanged", changed);
+    return () => provider?.removeListener?.("accountsChanged", changed);
+  }, [walletProvider]);
+  useEffect(() => {
+    const select = (provider) => {
+      if (!provider?.request) return;
+      setWalletProvider((current) => current || provider);
+      if (!window.ethereum) window.ethereum = provider;
+    };
+    const announced = (event) => select(event.detail?.provider);
+    window.addEventListener("eip6963:announceProvider", announced);
+    for (const provider of window.ethereum?.providers || [window.ethereum])
+      select(provider);
+    window.dispatchEvent(new Event("eip6963:requestProvider"));
+    return () =>
+      window.removeEventListener("eip6963:announceProvider", announced);
   }, []);
   async function connect() {
     try {
-      if (!window.ethereum)
-        throw new Error("Install an EIP-1193 wallet extension to connect.");
-      const accounts = await window.ethereum.request({
+      const provider = walletProvider || window.ethereum;
+      if (!provider)
+        throw new Error(
+          "No browser wallet was found. Install or unlock MetaMask, Rabby, or another EIP-1193 wallet extension, then refresh this page.",
+        );
+      const accounts = await provider.request({
         method: "eth_requestAccounts",
       });
       setAccount(accounts[0] || "");
@@ -463,6 +482,10 @@ function App() {
                     Connect wallet
                   </button>
                   <p className="note">
+                    {walletProvider
+                      ? "A browser wallet was detected. Connect it to continue."
+                      : "No browser wallet was detected in this browser profile."}
+                    <br />
                     Keys stay in your wallet. Every transaction requires
                     explicit review and a wallet signature. Intent states and
                     receipts are recorded by the backend.
