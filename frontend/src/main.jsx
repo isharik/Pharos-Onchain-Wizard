@@ -161,7 +161,9 @@ function App() {
     </a>
   );
   return (
-    <div className="shell">
+    <div
+      className={`shell ${["home", "dashboard"].includes(page) ? "ambient-shell" : ""}`}
+    >
       <aside className={mobile ? "visible" : ""}>
         <div className="brand">
           <div className="brand-logo">
