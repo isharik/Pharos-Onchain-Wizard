@@ -1,8 +1,8 @@
-# Requirements matrix — attachment review completed before implementation
+# Feature requirements matrix — attachment review completed before implementation
 
 Source: all 17 challenge screenshots supplied on 2026-11-02, in supplied order. Original challenge IDs are not visible; C01–C17 are local traceability IDs, not claimed official IDs. Every screenshot awards an additional 50 points with video. No video is supplied. C16 additionally encourages a demo video. C05 cuts off the content below “WHAT TO SUBMIT”; that unseen content is unknown. The official logo supplied later is integrated unchanged. Implementation status does not imply live acceptance: see [verification.md](verification.md).
 
-| ID | Challenge | Required functionality | Required integrations | Acceptance tests | Status |
+| ID | Feature | Required functionality | Required integrations | Acceptance tests | Status |
 |---|---|---|---|---|---|
 | C01 | DOC-SEARCH CLI | Natural-language CLI; concise sourced answers; graceful no-match; install/usage and 3 queries with outputs | Developer Docs MCP | C01.1–4 | Implemented; see numbered verification |
 | C02 | THRESHOLD GUARDIAN | At least 3 independent chain conditions; configurable thresholds; per-condition trace; fire and hold demos | SkillEngine, chain reads | C02.1–4 | Implemented; see numbered verification |

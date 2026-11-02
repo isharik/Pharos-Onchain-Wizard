@@ -22,7 +22,7 @@ test("Configuration rejects invalid network, non-HTTPS remote endpoints and inva
   assert.equal(configFromEnv({}).network.chainId, 1672);
 });
 test("SQLite state, event dedup and interrupted runs survive restart", () => {
-  const dir = mkdtempSync(join(tmpdir(), "faros-test-"));
+  const dir = mkdtempSync(join(tmpdir(), "pharos-test-"));
   try {
     let store = new Store(join(dir, "test.sqlite"));
     store.set("trend", { history: [1, 2, 3] });
