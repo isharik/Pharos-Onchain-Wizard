@@ -499,19 +499,41 @@ function App() {
               {page === "settings" && (
                 <>
                   <section className="panel narrow">
-                    <h2>Network & server configuration</h2>
+                    <h2>Connection configuration</h2>
                     <p>
-                      Configure connections and secrets in the server’s{" "}
-                      <code>.env</code> file, then restart. Secrets are never
-                      returned to the browser.
+                      Connection states reflect the active deployment. Optional
+                      alert credentials remain server-side and are never sent
+                      to the browser.
                     </p>
-                    <Details value={boot.configuration} />
+                    <div className="connection-list">
+                      <div className="connection-row">
+                        <span>Pharos RPC <small>{boot.configuration.rpcHost}</small></span>
+                        <Badge status="connected" />
+                      </div>
+                      <div className="connection-row">
+                        <span>Chain MCP <small>Hosted Pharos Chain MCP</small></span>
+                        <Badge status={boot.configuration.chainMcpConfigured ? "connected" : "not configured"} />
+                      </div>
+                      <div className="connection-row">
+                        <span>Developer Docs <small>{boot.configuration.docsMode === "index" ? "Official Pharos documentation index" : "Remote Developer Docs MCP"}</small></span>
+                        <Badge status={health?.docs?.status || "checking"} />
+                      </div>
+                      <div className="connection-row">
+                        <span>SkillEngine <small>{health?.skill?.error?.message || "Requires the official package and Foundry cast runtime"}</small></span>
+                        <Badge status={health?.skill?.status || "checking"} />
+                      </div>
+                      <div className="connection-row">
+                        <span>Alert delivery <small>{boot.configuration.channelConfigured ? "A Discord or Telegram channel is configured" : "Optional — configure Discord or Telegram credentials for external alerts"}</small></span>
+                        <Badge status={boot.configuration.channelConfigured ? "connected" : "not configured"} />
+                      </div>
+                    </div>
                     <p>
                       Network: {boot.network.name} ({boot.network.chainId})
                     </p>
                     <p className="note">
-                      The hosted Chain MCP uses mainnet. Atlantic requires a
-                      separately configured matching Chain MCP.
+                      The hosted Chain MCP uses mainnet. On a self-hosted
+                      backend, configure optional credentials with environment
+                      variables; Vercel does not expose a server <code>.env</code> file.
                     </p>
                   </section>
                   <section className="panel narrow">
