@@ -1,0 +1,6 @@
+{
+  "payee": "0x2222222222222222222222222222222222222222",
+  "amount": "0.01",
+  "token": "native",
+  "reference": "SAMPLE-DO-NOT-PAY-001"
+}

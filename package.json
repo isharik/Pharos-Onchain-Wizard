@@ -1,0 +1,35 @@
+{
+  "name": "pharos",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env backend/src/server.js",
+    "dev:ui": "vite --config frontend/vite.config.js",
+    "build": "vite build --config frontend/vite.config.js",
+    "start": "node --env-file-if-exists=.env backend/src/server.js",
+    "test": "node --test backend/test/*.test.js",
+    "test:live": "node --env-file-if-exists=.env scripts/live-check.js",
+    "cli": "node --env-file-if-exists=.env scripts/cli.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "ajv": "^8.17.1",
+    "decimal.js": "^10.6.0",
+    "ethers": "^6.15.0",
+    "express": "^5.1.0",
+    "lucide-react": "^0.468.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "vite": "^7.1.0"
+  },
+  "optionalDependencies": {
+    "@foundry-rs/cast-win32-amd64": "1.7.1"
+  }
+}

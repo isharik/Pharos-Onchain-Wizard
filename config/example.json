@@ -1,0 +1,7 @@
+{
+  "conditions": [
+    {"name":"Gas price in gwei","source":{"kind":"gas","transport":"rpc","decimals":9},"operator":"lt","threshold":"20"},
+    {"name":"Burn address balance","source":{"kind":"balance","transport":"rpc","address":"0x0000000000000000000000000000000000000000","decimals":18},"operator":"gte","threshold":"0"},
+    {"name":"Chain progress","source":{"kind":"block","transport":"rpc","decimals":0},"operator":"gt","threshold":"0"}
+  ]
+}
