@@ -236,6 +236,8 @@ function App() {
                 network={boot.network}
                 account={account}
                 refresh={refresh}
+                health={health}
+                configuration={boot.configuration}
               />
             </Suspense>
           ) : (
@@ -268,7 +270,7 @@ function App() {
                       </strong>
                     </div>
                     <div>
-                      <span>Dependencies ready</span>
+                      <span>Connections ready</span>
                       <strong>
                         {ready}
                         <small>of 17</small>
@@ -288,7 +290,7 @@ function App() {
                       </strong>
                     </div>
                   </div>
-                  <div className="two-column">
+                  <div className="dashboard-grid">
                     <section className="panel">
                       <div className="section-heading">
                         <h2>Infrastructure</h2>
@@ -311,6 +313,22 @@ function App() {
                         Readiness indicates available dependencies. Configure
                         contract-specific sources inside each feature.
                       </p>
+                    </section>
+                    <section className="panel feature-coverage">
+                      <div className="section-heading">
+                        <h2>Feature readiness</h2>
+                        <span className="muted">Live connections only</span>
+                      </div>
+                      <p>
+                        Each workspace validates its own inputs before it runs. Features that use protocols or alert channels need your verified configuration before live use.
+                      </p>
+                      <div className="coverage-bar" aria-label={`${ready} of ${boot.modules.length} feature dependencies connected`}>
+                        <span style={{ width: `${(ready / boot.modules.length) * 100}%` }} />
+                      </div>
+                      <div className="coverage-labels">
+                        <span>{ready} connection-ready</span>
+                        <a href="#infrastructure">Review connections <ArrowUpRight size={12} /></a>
+                      </div>
                     </section>
                     <section className="panel">
                       <div className="section-heading">

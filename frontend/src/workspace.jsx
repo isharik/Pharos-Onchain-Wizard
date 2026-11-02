@@ -57,6 +57,50 @@ const notes = {
   events:
     "Queries Chain MCP using your contract and event signature. Each decoded event is persisted once; continuous polling resumes after restart.",
 };
+const quickstarts = {
+  "doc-search": ["Ask a question in plain language.", "Review the cited canonical documents in the result."],
+  threshold: ["Keep three independent on-chain conditions.", "Tune thresholds, then inspect the recorded pass/fail trace."],
+  saga: ["Define dependent steps in execution order.", "Use receipt checks and review the compensation path before signing."],
+  arbitrage: ["Use two sources quoted in the same base and quote units.", "A route is prepared only when net profit clears your threshold."],
+  "dry-run": ["Paste a transaction request without a signature.", "Resolve every simulation failure before reviewing a real transaction."],
+  trend: ["Record comparable observations over time.", "Set a minimum observation count of three or more."],
+  policy: ["Set a spend limit, allowlist, and time window.", "Each decision names the rule that allowed or denied it."],
+  "skill-chain": ["Choose a live Chain MCP read.", "Run one request to retain the fetched value and decision together."],
+  "docs-chain": ["Select a documented contract function.", "The explanation is retrieved before the live Chain MCP read."],
+  yield: ["Add at least three live yield sources with comparable units.", "Include entry, exit, gas, and holding-period costs."],
+  liquidation: ["Provide live collateral, debt, and health-factor reads.", "Set warning and critical thresholds before enabling monitoring."],
+  recurring: ["Set recipient, token, amount, and cadence.", "Payments are prepared for a wallet signature; no payment is auto-sent."],
+  invoice: ["Paste labelled text or structured JSON.", "Fix missing or conflicting fields before preparing the unsigned payment."],
+  alert: ["Set one crossing condition and configure an external channel.", "The persisted cursor prevents repeat alerts for the same event."],
+  whale: ["Watch at least five accounts and choose a token threshold.", "Review transfers with amount, sender, recipient, and transaction hash."],
+  aggregator: ["Add two ERC-4626 vaults that hold the same asset.", "Unavailable venues remain visible while other sources keep running."],
+  events: ["Enter a contract and event signature.", "Start monitoring after a successful query to persist only new events."],
+};
+const modeByFeature = {
+  "doc-search": "Read-only retrieval",
+  threshold: "Read-only decision",
+  saga: "Signature-gated workflow",
+  arbitrage: "Safe scan / prepared route",
+  "dry-run": "Read-only simulation",
+  trend: "Persistent observation",
+  policy: "Read-only policy check",
+  "skill-chain": "Composed live read",
+  "docs-chain": "Documented contract read",
+  yield: "Read-only recommendation",
+  liquidation: "Read-only monitoring",
+  recurring: "Signature-gated schedule",
+  invoice: "Unsigned payment preparation",
+  alert: "Continuous monitoring",
+  whale: "Continuous monitoring",
+  aggregator: "Signature-gated preparation",
+  events: "Continuous Chain MCP monitor",
+};
+const dependencyLabels = { rpc: "Pharos RPC", chain: "Chain MCP", docs: "Developer Docs", wallet: "Wallet", channel: "Alert channel" };
+function StatusBadge({ status }) {
+  const good = ["connected", "configured", "succeeded"];
+  const bad = ["failed", "unavailable", "not connected", "not configured"];
+  return <span className={`badge ${good.includes(status) ? "good" : bad.includes(status) ? "bad" : ""}`}>{status}</span>;
+}
 function Evidence({ value }) {
   const [visibleRows, setVisibleRows] = useState(20);
   useEffect(() => setVisibleRows(20), [value]);
@@ -175,7 +219,7 @@ function Evidence({ value }) {
     </>
   );
 }
-export default function Workspace({ module, network, account, refresh }) {
+export default function Workspace({ module, network, account, refresh, health, configuration }) {
   const formRef = useRef(null);
   const initial = () =>
     Object.fromEntries(
@@ -205,6 +249,11 @@ export default function Workspace({ module, network, account, refresh }) {
     [tab, setTab] = useState("workspace"),
     [history, setHistory] = useState([]),
     [jobs, setJobs] = useState([]);
+  const dependencyStatus = (dependency) => {
+    if (dependency === "wallet") return account ? "connected" : "not connected";
+    if (dependency === "channel") return configuration?.channelConfigured ? "configured" : "not configured";
+    return health?.[dependency]?.status || "checking";
+  };
   const load = async () => {
     try {
       const [h, j] = await Promise.all([api("/history"), api("/jobs")]);
@@ -371,8 +420,16 @@ export default function Workspace({ module, network, account, refresh }) {
           <p className="eyebrow">{module.group}</p>
           <h1>{module.title}</h1>
           <p>{module.description}</p>
+          <div className="feature-metadata" aria-label="Feature information">
+            <span className="feature-code">{module.code}</span>
+            <span>{modeByFeature[module.id]}</span>
+            {module.monitor && <span>Persistent history</span>}
+          </div>
         </div>
-        <span className="badge">{network.name}</span>
+        <div className="feature-network">
+          <span className="badge">{network.name}</span>
+          <small>Chain {network.chainId}</small>
+        </div>
       </div>
       <div className="feature-tabs">
         <button
@@ -505,6 +562,15 @@ export default function Workspace({ module, network, account, refresh }) {
                     ? "Workflow steps"
                     : "Configuration"}
             </h2>
+            <div className="quickstart">
+              <div>
+                <strong>Run checklist</strong>
+                <span>Use real values only</span>
+              </div>
+              <ol>
+                {quickstarts[module.id].map((item) => <li key={item}>{item}</li>)}
+              </ol>
+            </div>
             <form
               ref={formRef}
               onSubmit={(e) => {
@@ -579,6 +645,21 @@ export default function Workspace({ module, network, account, refresh }) {
             )}
           </section>
           <div className="results-column">
+            <section className="panel readiness-panel">
+              <div className="section-heading">
+                <div>
+                  <h2>Run readiness</h2>
+                  <span className="muted">Current connection state</span>
+                </div>
+                <span className="badge">{module.dependencies.length ? `${module.dependencies.length} dependencies` : "Local rules"}</span>
+              </div>
+              {module.dependencies.length ? module.dependencies.map((dependency) => (
+                <div className="readiness-row" key={dependency}>
+                  <span>{dependencyLabels[dependency]}</span>
+                  <StatusBadge status={dependencyStatus(dependency)} />
+                </div>
+              )) : <p className="feature-note">This feature evaluates the policy you provide and does not require a remote connection.</p>}
+            </section>
             <section className="panel">
               <div className="section-heading">
                 <h2>Results</h2>
