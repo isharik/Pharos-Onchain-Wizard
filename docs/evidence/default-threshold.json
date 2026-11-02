@@ -1,0 +1,14 @@
+{
+  "time": "2026-11-02T15:29:18.874Z",
+  "network": "Pharos Mainnet",
+  "chainId": 1672,
+  "module": "threshold",
+  "decision": "fire",
+  "block": "21943040",
+  "checks": [
+    { "name": "Gas price in gwei", "value": "10.0", "operator": "lt", "threshold": "20", "pass": true },
+    { "name": "Burn address balance", "value": "0.0", "operator": "gte", "threshold": "0", "pass": true },
+    { "name": "Chain progress", "value": "21943040", "operator": "gt", "threshold": "0", "pass": true }
+  ],
+  "transactionBroadcast": false
+}
