@@ -667,11 +667,11 @@ footer {
 .welcome-hero h1 { font-size: clamp(42px, 6vw, 70px); line-height: .98; letter-spacing: -3px; margin: 0 0 20px; color: #14234a; }
 .welcome-hero p:not(.eyebrow) { max-width: 520px; margin: auto; font-size: 15px; color: #59708f; line-height: 1.7; }
 .hero-actions { display: flex; justify-content: center; gap: 10px; margin: 32px 0 45px; }
-.hero-actions a { text-decoration: none; min-height: 42px; padding: 0 17px; border-radius: 6px; font-weight: 600; font-size: 12px; transition: transform .18s ease, box-shadow .18s ease, background .18s ease; }
+.hero-actions a { display: inline-flex; align-items: center; justify-content: center; line-height: 1; text-decoration: none; height: 42px; padding: 0 17px; border-radius: 6px; font-weight: 600; font-size: 12px; transition: transform .18s ease, box-shadow .18s ease, background .18s ease; }
 .hero-actions a:hover { transform: translateY(-1px); text-decoration: none; }
 .hero-primary { box-shadow: 0 8px 22px rgba(3, 6, 181, .18); }
 .hero-primary:hover { box-shadow: 0 11px 25px rgba(3, 6, 181, .26); }
-.hero-link { display: inline-flex; align-items: center; color: #1f3c79; background: rgba(255,255,255,.72); border-color: rgba(175,190,217,.9); }
+.hero-link { color: #1f3c79; background: rgba(255,255,255,.72); border-color: rgba(175,190,217,.9); }
 .hero-link:hover { background: #fff; }
 .hero-link span { font-size: 16px; margin-left: 2px; }
 .hero-foot { display: flex; justify-content: center; gap: 22px; color: #536d91; font-size: 11px; padding-top: 18px; border-top: 1px solid rgba(115,137,180,.22); }
