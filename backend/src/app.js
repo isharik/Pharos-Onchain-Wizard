@@ -18,6 +18,12 @@ export function createApp(ctx) {
   authentication(app, ctx);
   app.use((req, res, next) => {
     const host = req.headers.host?.split(":")[0];
+    const acceptedOrigins = [
+      "http://localhost:" + ctx.config.port,
+      "http://127.0.0.1:" + ctx.config.port,
+      ctx.config.publicOrigin,
+      ctx.config.corsOrigin,
+    ].filter(Boolean);
     if (
       ![
         "localhost",
@@ -39,20 +45,19 @@ export function createApp(ctx) {
       "Content-Security-Policy",
       "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
     );
+    if (req.headers.origin && !acceptedOrigins.includes(req.headers.origin))
+      return res.status(403).json({ error: { message: "Origin not allowed" } });
+    if (req.headers.origin && acceptedOrigins.includes(req.headers.origin)) {
+      res.setHeader("Access-Control-Allow-Origin", req.headers.origin);
+      res.setHeader("Vary", "Origin");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Pharos-Token");
+      res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    }
+    if (req.method === "OPTIONS") return res.status(204).end();
     if (req.method !== "GET" && req.headers["x-pharos-token"] !== csrf)
       return res
         .status(403)
         .json({ error: { message: "Missing local session token" } });
-    if (
-      req.headers.origin &&
-      ![
-        "http://localhost:" + ctx.config.port,
-        "http://127.0.0.1:" + ctx.config.port,
-        "http://localhost:5173",
-        ctx.config.publicOrigin,
-      ].includes(req.headers.origin)
-    )
-      return res.status(403).json({ error: { message: "Origin not allowed" } });
     next();
   });
   let healthCache = null,

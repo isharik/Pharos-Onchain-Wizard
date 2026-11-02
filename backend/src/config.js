@@ -25,6 +25,8 @@ export function configFromEnv(env = process.env) {
   const rpc = env.PHAROS_RPC_URL || network.rpc;
   const host = env.HOST || "127.0.0.1";
   const publicOrigin = env.PUBLIC_ORIGIN;
+  const corsOrigin = env.CORS_ORIGIN;
+  const allowPublicAccess = env.ALLOW_PUBLIC_ACCESS === "true";
   if (
     publicOrigin &&
     (!publicOrigin.startsWith("https://") ||
@@ -33,11 +35,10 @@ export function configFromEnv(env = process.env) {
     throw new Error(
       "PUBLIC_ORIGIN must be an HTTPS origin without a trailing slash",
     );
-  if (
-    (publicOrigin || !["127.0.0.1", "localhost"].includes(host)) &&
-    !env.ADMIN_PASSWORD_HASH
-  )
+  if ((publicOrigin || !["127.0.0.1", "localhost"].includes(host)) && !env.ADMIN_PASSWORD_HASH && !allowPublicAccess)
     throw new Error("Public access requires ADMIN_PASSWORD_HASH");
+  if (corsOrigin && (!corsOrigin.startsWith("https://") || new URL(corsOrigin).origin !== corsOrigin))
+    throw new Error("CORS_ORIGIN must be an HTTPS origin without a trailing slash");
   if (!["127.0.0.1", "localhost"].includes(host) && !publicOrigin)
     throw new Error(
       "Public binding requires PUBLIC_ORIGIN and a TLS reverse proxy",
@@ -67,6 +68,8 @@ export function configFromEnv(env = process.env) {
     network: { ...network, rpc, chainId },
     host,
     publicOrigin,
+    corsOrigin,
+    allowPublicAccess,
     adminHash: env.ADMIN_PASSWORD_HASH,
     adminUser: env.ADMIN_USERNAME || "admin",
     timeout,

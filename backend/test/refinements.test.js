@@ -36,6 +36,18 @@ test("Public configuration requires credentials and TLS origin", () => {
       ADMIN_PASSWORD_HASH: hash,
     }),
   );
+  assert.equal(
+    configFromEnv({
+      HOST: "0.0.0.0",
+      PUBLIC_ORIGIN: "https://pharos.example",
+      CORS_ORIGIN: "https://pharos-ui.vercel.app",
+      ALLOW_PUBLIC_ACCESS: "true",
+    }).corsOrigin,
+    "https://pharos-ui.vercel.app",
+  );
+  assert.throws(() =>
+    configFromEnv({ CORS_ORIGIN: "http://pharos-ui.vercel.app" }),
+  );
 });
 test("Docs selects actual chain ID data and excludes irrelevant pages", () => {
   const pages = [

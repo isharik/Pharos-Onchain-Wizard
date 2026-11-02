@@ -245,6 +245,7 @@ test("HTTP integration: bootstrap, all feature validation routes, CSRF and hones
   ctx.config.network.rpc = "https://rpc.pharos.xyz";
   ctx.config.chainMcp = { url: "https://mcp.pharos.xyz/mcp" };
   ctx.config.docsMcp = {};
+  ctx.config.corsOrigin = "https://pharos-ui.vercel.app";
   ctx.docs.search = async () => {
     throw Object.assign(new Error("Docs unavailable"), {
       code: "NOT_CONFIGURED",
@@ -257,6 +258,19 @@ test("HTTP integration: bootstrap, all feature validation routes, CSRF and hones
   try {
     const boot = await (await fetch(base + "/api/bootstrap")).json();
     assert.equal(boot.modules.length, 18);
+    const preflight = await fetch(base + "/api/run/doc-search", {
+      method: "OPTIONS",
+      headers: {
+        Origin: ctx.config.corsOrigin,
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "content-type,x-pharos-token",
+      },
+    });
+    assert.equal(preflight.status, 204);
+    assert.equal(
+      preflight.headers.get("access-control-allow-origin"),
+      ctx.config.corsOrigin,
+    );
     assert.equal(
       (
         await fetch(base + "/api/run/doc-search", {

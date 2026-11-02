@@ -74,6 +74,26 @@ Copy `.env.example` to `.env` to configure optional services such as Discord, Te
 
 Default network: Pharos Mainnet, chain ID `1672`, RPC `https://rpc.pharos.xyz`, native token `PROS`.
 
+## Temporary Vercel + Render team testing
+
+Vercel hosts the browser interface; Render hosts the API and SQLite-backed workspace. To let a team review it briefly without an administrator login, deploy the repository to Render as a **Web Service** with build command `npm ci && npm run build` and start command `npm run start`, then configure:
+
+```env
+HOST=0.0.0.0
+PUBLIC_ORIGIN=https://your-render-service.onrender.com
+CORS_ORIGIN=https://your-vercel-project.vercel.app
+ALLOW_PUBLIC_ACCESS=true
+DATA_DIR=/tmp/pharos-data
+```
+
+Remove `ADMIN_USERNAME` and `ADMIN_PASSWORD_HASH` from that Render service. On Vercel, import the repository as a Vite project and add this build-time variable:
+
+```env
+VITE_API_BASE_URL=https://your-render-service.onrender.com
+```
+
+Redeploy Vercel after setting the variable. This mode makes the shared workspace writable by anyone with its Vercel URL, so do not set private notification or payment credentials, and remove `ALLOW_PUBLIC_ACCESS` after the review. Render free-tier `/tmp` data is erased when its instance restarts; attach a persistent disk and use `DATA_DIR=/var/data` if retained history is required.
+
 ## Important limits
 
 The project contains working feature flows, validation, persistence, and tests. Some end-to-end demonstrations require external information that is not bundled with the repository:
