@@ -48,16 +48,21 @@ export const catalog = [
       field("conditions", "Conditions", "json", [
         { name: "Gas price", source, operator: "lt", threshold: "20" },
         {
-          name: "Native balance",
-          source: { kind: "balance", address: "", decimals: 18 },
-          operator: "gt",
-          threshold: "1",
+          name: "Pharos zero-address balance",
+          source: {
+            kind: "balance",
+            transport: "rpc",
+            address: "0x0000000000000000000000000000000000000000",
+            decimals: 18,
+          },
+          operator: "gte",
+          threshold: "0",
         },
         {
-          name: "Vault liquidity",
-          source: call,
+          name: "Current block",
+          source: { kind: "block", transport: "rpc", decimals: 0 },
           operator: "gt",
-          threshold: "100",
+          threshold: "0",
         },
       ]),
     ],

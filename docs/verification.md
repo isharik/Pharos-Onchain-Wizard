@@ -8,6 +8,7 @@ Last checked: 2 November 2026. This report records observed results, not a produ
 - `npm test`: 71 tests passed, zero failures. Includes every feature's validation, core decision paths, failure handling, persistent state, transaction authorization boundaries, HTTP routes, and administrator login/logout.
 - `npm run build`: production build passed.
 - `npm audit --omit=dev`: zero reported vulnerabilities at this check.
+- The default Threshold Guardian configuration was executed against mainnet: gas price, zero-address balance and current block all passed at block `21943040`, resulting in a read-only `fire` decision.
 - Browser: all 17 feature routes opened with their intended heading and form. Documentation search returned live sourced chain information. Event query decoded real transfers. Continuous monitoring started, paused, and retained its paused state/history after a server restart. Saved form inputs survived navigation and reload.
 - Responsive checks: mobile navigation opened; 390px mobile and 820px tablet layouts had no document horizontal overflow. Desktop branding and layout inspected.
 - Supplied logo copied unchanged. SHA-256: `26d4f205ac643b8b9ad1458f8ec75040787ba0edb71d2f6a8a44e2bc34350978`.
