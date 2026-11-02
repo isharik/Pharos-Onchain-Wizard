@@ -67,6 +67,7 @@ export function configFromEnv(env = process.env) {
   return {
     network: { ...network, rpc, chainId },
     host,
+    vercel: env.VERCEL === "1",
     publicOrigin,
     corsOrigin,
     allowPublicAccess,

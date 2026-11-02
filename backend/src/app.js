@@ -25,6 +25,7 @@ export function createApp(ctx) {
       ctx.config.corsOrigin,
     ].filter(Boolean);
     if (
+      !ctx.config.vercel &&
       ![
         "localhost",
         "127.0.0.1",
