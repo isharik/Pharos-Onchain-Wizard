@@ -19,6 +19,20 @@ const call = {
 const tx = { from: "", to: "", value: "0x0", data: "0x" };
 export const catalog = [
   {
+    id: "x402-buyer",
+    code: "C18",
+    title: "X402 AGENT BUYER",
+    group: "Payments",
+    description: "Inspect paid API offers, enforce a budget, and retain an idempotent payment ledger.",
+    dependencies: ["wallet"],
+    fields: [
+      field("task", "Task to complete", "textarea", "Fetch and compare both paid API resources."),
+      field("endpoints", "Two x402 API URLs", "json", ["", ""]),
+      field("budget", "Total budget (base units)", "text", "0"),
+      field("priceCap", "Maximum per-call price (base units)", "text", "0"),
+    ],
+  },
+  {
     id: "doc-search",
     code: "C01",
     title: "DOC-SEARCH CLI",

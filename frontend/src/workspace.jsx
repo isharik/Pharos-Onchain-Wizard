@@ -21,6 +21,7 @@ const actions = {
   whale: "Scan watched accounts",
   aggregator: "Compare vaults",
   events: "Fetch new events",
+  "x402-buyer": "Inspect paid APIs",
 };
 const notes = {
   "doc-search":
@@ -56,6 +57,7 @@ const notes = {
     "Compare at least two ERC-4626 vaults holding the same asset. Approvals, deposits and withdrawals are prepared for your signature.",
   events:
     "Queries Chain MCP using your contract and event signature. Each decoded event is persisted once; continuous polling resumes after restart.",
+  "x402-buyer": "Checks two HTTPS x402 endpoints, enforces both price limits before approval, and persists a deduplicated payment ledger. Wallet approval is always explicit.",
 };
 const quickstarts = {
   "doc-search": ["Ask a question in plain language.", "Review the cited canonical documents in the result."],
@@ -75,6 +77,7 @@ const quickstarts = {
   whale: ["Watch at least five accounts and choose a token threshold.", "Review transfers with amount, sender, recipient, and transaction hash."],
   aggregator: ["Add two ERC-4626 vaults that hold the same asset.", "Unavailable venues remain visible while other sources keep running."],
   events: ["Enter a contract and event signature.", "Start monitoring after a successful query to persist only new events."],
+  "x402-buyer": ["Enter two HTTPS x402 endpoint URLs.", "Set base-unit budget and per-call cap, then review the deduplicated ledger."],
 };
 const modeByFeature = {
   "doc-search": "Read-only retrieval",
@@ -94,6 +97,7 @@ const modeByFeature = {
   whale: "Continuous monitoring",
   aggregator: "Signature-gated preparation",
   events: "Continuous Chain MCP monitor",
+  "x402-buyer": "Budget-gated API purchase",
 };
 const dependencyLabels = { rpc: "Pharos RPC", chain: "Chain MCP", docs: "Developer Docs", wallet: "Wallet", channel: "Alert channel" };
 function StatusBadge({ status }) {

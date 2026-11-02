@@ -29,7 +29,7 @@ function App() {
   const [boot, setBoot] = useState(null),
     [health, setHealth] = useState(null),
     [history, setHistory] = useState([]),
-    [page, setPage] = useState(location.hash.slice(1) || "dashboard"),
+    [page, setPage] = useState(location.hash.slice(1) || "home"),
     [error, setError] = useState(""),
     [account, setAccount] = useState(""),
     [filter, setFilter] = useState(""),
@@ -62,7 +62,7 @@ function App() {
         refresh();
       })
       .catch((e) => setError(e.message));
-    const nav = () => setPage(location.hash.slice(1) || "dashboard");
+    const nav = () => setPage(location.hash.slice(1) || "home");
     window.addEventListener("hashchange", nav);
     return () => window.removeEventListener("hashchange", nav);
   }, []);
@@ -101,6 +101,7 @@ function App() {
     module?.title ||
     {
       dashboard: "Dashboard",
+      home: "Home",
       infrastructure: "Shared infrastructure",
       activity: "Execution history",
       traces: "Decision traces",
@@ -145,9 +146,10 @@ function App() {
         </div>
         <div className="nav-scroll">
           <div className="nav-label">OVERVIEW</div>
+          {nav("home", "Home", LayoutDashboard)}
           {nav("dashboard", "Dashboard", LayoutDashboard)}
           <div className="nav-label feature-label">
-            FEATURES <span>17</span>
+            FEATURES <span>{boot.modules.length}</span>
           </div>
           <div className="nav-search">
             <Search size={13} />
@@ -396,6 +398,19 @@ function App() {
                     </section>
                   )}
                 </>
+              )}
+              {page === "home" && (
+                <section className="welcome-hero">
+                  <div className="mesh-field" aria-hidden="true" />
+                  <div className="welcome-content">
+                    <div className="hero-logo"><img src="/assets/pharos-logo.jpg" alt="Pharos" /></div>
+                    <p className="eyebrow">ON-CHAIN OPERATIONS WORKSPACE</p>
+                    <h1>Pharos Onchain<br />Wizard</h1>
+                    <p>Operate, monitor, and verify Pharos workflows from one secure, non-custodial workspace.</p>
+                    <div className="hero-actions"><a className="primary" href="#dashboard">Open dashboard</a><a className="secondary hero-link" href="#doc-search">Explore features</a></div>
+                    <div className="hero-foot"><span>{boot.modules.length} guided features</span><span>Real chain evidence</span><span>Explicit signatures only</span></div>
+                  </div>
+                </section>
               )}
               {["activity", "traces", "logs"].includes(page) && (
                 <History

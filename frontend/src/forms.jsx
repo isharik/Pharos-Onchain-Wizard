@@ -444,6 +444,18 @@ export function FeatureField({ field, value, onChange, moduleId, account }) {
         />
       </label>
     );
+  if (field.name === "endpoints")
+    return (
+      <Rows
+        label="Paid API endpoint"
+        items={structured}
+        onChange={change}
+        create={() => ""}
+        render={(endpoint, set) => (
+          <Control label="HTTPS URL" value={endpoint} onChange={set} help="The endpoint must return an x402 payment challenge." />
+        )}
+      />
+    );
   if (field.name === "vaults")
     return (
       <Rows
@@ -492,11 +504,7 @@ export function FeatureField({ field, value, onChange, moduleId, account }) {
     );
   if (field.name === "labels")
     return (
-      <JsonInput
-        label="Address labels (address: name)"
-        value={structured}
-        onChange={change}
-      />
+      <label className="control"><span>Address labels (one per line: address = name)</span><textarea rows={4} value={Object.entries(structured).map(([address, name]) => `${address} = ${name}`).join("\n")} onChange={(e) => change(Object.fromEntries(e.target.value.split("\n").map((line) => line.split("=").map((v) => v.trim())).filter(([address, name]) => address && name)))} /></label>
     );
   if (field.type === "json")
     return (

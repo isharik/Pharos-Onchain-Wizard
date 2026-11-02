@@ -238,7 +238,7 @@ test("Scheduler persists jobs, pauses, and executes due jobs without overlaps", 
     ctx.store.close();
   }
 });
-test("HTTP integration: bootstrap, all 17 validation routes, CSRF and honest docs failure", async () => {
+test("HTTP integration: bootstrap, all feature validation routes, CSRF and honest docs failure", async () => {
   const ctx = context();
   ctx.config.port = 0;
   ctx.config.network.name = "Test fixture";
@@ -256,7 +256,7 @@ test("HTTP integration: bootstrap, all 17 validation routes, CSRF and honest doc
   const base = `http://127.0.0.1:${server.address().port}`;
   try {
     const boot = await (await fetch(base + "/api/bootstrap")).json();
-    assert.equal(boot.modules.length, 17);
+    assert.equal(boot.modules.length, 18);
     assert.equal(
       (
         await fetch(base + "/api/run/doc-search", {
