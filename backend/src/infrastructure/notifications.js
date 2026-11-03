@@ -8,9 +8,10 @@ export class Notifications {
     const key = `notification:${id}`;
     const old = this.store.get(key);
     if (old) return { status: old.status, duplicate: true };
-    const content = `${new Date().toISOString()} | ${payload.message} | ${payload.link || ""}`;
+    const timestamp = new Date().toISOString();
+    const content = `${timestamp} | ${payload.message} | ${payload.link || ""}`;
     if (channel === "console") {
-      console.info(JSON.stringify({ level: "alert", ...payload }));
+      console.info(JSON.stringify({ level: "alert", timestamp, ...payload }));
       this.store.set(key, { status: "delivered" });
       return { status: "delivered" };
     }
