@@ -55,8 +55,10 @@ export function rankPages(index, question, functionName) {
     .sort((a, b) => b.score - a.score);
   return pages.filter((p) => p.score >= pages[0].score * 0.65).slice(0, 3);
 }
-export function excerptFrom(text, question, functionName) {
-  const content = text.split("# Agent Instructions")[0];
+export function excerptFrom(text, question, functionName, options = {}) {
+  const content = options.fullIndex
+    ? text
+    : text.split("# Agent Instructions")[0];
   const lines = content
     .split(/\r?\n/)
     .filter(
@@ -118,6 +120,7 @@ export class Docs {
     this.config = config;
     this.mcp = mcp;
     this.cache = null;
+    this.fullCache = null;
   }
   async text(url) {
     const target = new URL(url);
@@ -175,6 +178,13 @@ export class Docs {
     this.cache = { time: Date.now(), pages };
     return pages;
   }
+  async fullIndex() {
+    if (this.fullCache && Date.now() - this.fullCache.time < 300000)
+      return this.fullCache.text;
+    const text = await this.text("https://docs.pharos.xyz/llms-full.txt");
+    this.fullCache = { time: Date.now(), text };
+    return text;
+  }
   async search(question, mode = this.config.docsMode || "index", options = {}) {
     if (mode === "mcp") {
       if (!this.config.docsTool)
@@ -218,6 +228,31 @@ export class Docs {
           matches.push({ title: page.title, url: page.url, excerpt });
       } catch (error) {
         failures.push({ url: page.url, message: error.message });
+      }
+    }
+    // Individual GitBook markdown pages can be temporarily unavailable even
+    // while Pharos's canonical full agent index remains available. For an
+    // explain-then-call flow, use that official index only as a fallback and
+    // keep its URL in the result rather than fabricating an explanation.
+    if (!matches.length && options.functionName) {
+      try {
+        const excerpt = excerptFrom(
+          await this.fullIndex(),
+          question,
+          options.functionName,
+          { fullIndex: true },
+        );
+        if (excerpt)
+          matches.push({
+            title: "Pharos Docs full agent index",
+            url: "https://docs.pharos.xyz/llms-full.txt",
+            excerpt,
+          });
+      } catch (error) {
+        failures.push({
+          url: "https://docs.pharos.xyz/llms-full.txt",
+          message: error.message,
+        });
       }
     }
     return {
