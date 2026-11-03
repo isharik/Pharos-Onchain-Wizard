@@ -360,6 +360,59 @@ test("C10 prepares a reviewed rebalance only after a positive recommendation", a
     ctx.store.close();
   }
 });
+test("C10 annualizes three ERC-4626 share-value changes from real block windows", async () => {
+  const ctx = context();
+  try {
+    const m = await resolveModule("yield");
+    const vaultAbi = new Interface([
+      "function convertToAssets(uint256 shares) view returns(uint256)",
+    ]);
+    ctx.rpc.block = async () => "0x64";
+    ctx.rpc.request = async (method, params = []) => {
+      if (method === "eth_gasPrice") return "0xa";
+      if (method === "eth_getBlockByNumber")
+        return {
+          timestamp: params[0] === "0x50" ? "0x0" : "0x15180",
+        };
+      if (method === "eth_call") {
+        const prior = params[1] === "0x50";
+        const values = {
+          [A.toLowerCase()]: prior ? 100n : 101n,
+          [B.toLowerCase()]: prior ? 100n : 103n,
+          [C.toLowerCase()]: prior ? 100n : 102n,
+        };
+        return vaultAbi.encodeFunctionResult("convertToAssets", [
+          values[params[0].to.toLowerCase()] || 100n,
+        ]);
+      }
+      throw new Error(`Unexpected RPC method ${method}`);
+    };
+    const vault = (address, label) => ({
+      kind: "vaultYield",
+      transport: "rpc",
+      address,
+      shareUnits: "1000000",
+      lookbackBlocks: 20,
+      label,
+    });
+    const result = await m.execute(ctx, {
+      sources: [vault(A, "A"), vault(B, "B"), vault(C, "C")],
+      current: 0,
+      principal: "1000",
+      holdingDays: 30,
+      entryBps: 0,
+      exitBps: 0,
+      gasUnits: "1",
+      nativePrice: gas,
+    });
+    assert.equal(result.observations[0].yieldMethod, "annualized-erc4626-share-return");
+    assert.equal(result.observations[1].window.elapsedSeconds, "86400");
+    assert.equal(result.decision, "recommend-rebalance");
+    assert.equal(result.rows[0].label, "B");
+  } finally {
+    ctx.store.close();
+  }
+});
 test("C11 health alert includes concrete repayment and timestamps via notification layer", async () => {
   const ctx = context();
   try {

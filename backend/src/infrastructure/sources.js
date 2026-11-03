@@ -11,6 +11,14 @@ export function mcpValue(value, keys) {
   );
 }
 export async function readSource(ctx, source, block) {
+  if (source.kind === "fixed")
+    return {
+      value: source.value,
+      raw: source.value,
+      block: String(block),
+      transport: "configured",
+      source,
+    };
   let raw;
   if (source.transport === "skill") return ctx.skill.read(source, block);
   if (source.transport === "mcp") {

@@ -212,10 +212,31 @@ export const catalog = [
       "Compare live yields against switching costs over your minimum holding period.",
     dependencies: ["rpc"],
     fields: [
-      field("sources", "Yield sources (APR as a fraction)", "json", [
-        { ...call, label: "Vault A" },
-        { ...call, label: "Vault B" },
-        { ...call, label: "Vault C" },
+      field("sources", "Yield sources", "json", [
+        {
+          kind: "vaultYield",
+          transport: "mcp",
+          address: "",
+          shareUnits: "1000000",
+          lookbackBlocks: 600000,
+          label: "Vault A",
+        },
+        {
+          kind: "vaultYield",
+          transport: "mcp",
+          address: "",
+          shareUnits: "1000000",
+          lookbackBlocks: 600000,
+          label: "Vault B",
+        },
+        {
+          kind: "vaultYield",
+          transport: "mcp",
+          address: "",
+          shareUnits: "1000000",
+          lookbackBlocks: 600000,
+          label: "Vault C",
+        },
       ]),
       field("current", "Current source index", "number", 0),
       field("principal", "Principal (shared quote units)", "text", "1000"),
@@ -223,7 +244,12 @@ export const catalog = [
       field("entryBps", "Entry fee (bps)", "number", 0),
       field("exitBps", "Exit fee (bps)", "number", 0),
       field("gasUnits", "Rebalance gas estimate", "text", "300000"),
-      field("nativePrice", "Native price in shared quote units", "json", call),
+      field("nativePrice", "Native price in shared quote units", "json", {
+        kind: "fixed",
+        transport: "rpc",
+        value: "",
+        label: "Current PROS price",
+      }),
       field(
         "transaction",
         "Optional reviewed rebalance transaction",

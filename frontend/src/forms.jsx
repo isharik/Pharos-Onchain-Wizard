@@ -61,7 +61,13 @@ function JsonInput({ label, value, onChange }) {
     </label>
   );
 }
-export function SourceEditor({ value, onChange, label = "Chain source" }) {
+export function SourceEditor({
+  value,
+  onChange,
+  label = "Chain source",
+  allowVaultYield = false,
+  allowFixed = false,
+}) {
   const s = value || emptySource();
   const set = (k, v) => onChange({ ...s, [k]: v });
   return (
@@ -71,36 +77,65 @@ export function SourceEditor({ value, onChange, label = "Chain source" }) {
         <Control
           label="Read"
           value={s.kind}
-          options={["gas", "balance", "block", "contract"].map((x) => [
+          options={[
+            "gas",
+            "balance",
+            "block",
+            "contract",
+            ...(allowVaultYield ? ["vaultYield"] : []),
+            ...(allowFixed ? ["fixed"] : []),
+          ].map((x) => [
             x,
             {
               gas: "Gas price",
               balance: "Native balance",
               block: "Block number",
               contract: "Contract function",
+              vaultYield: "Annualized ERC-4626 vault return",
+              fixed: "Configured value",
             }[x],
           ])}
           onChange={(v) =>
-            onChange({
-              ...s,
-              kind: v,
-              decimals: v === "gas" ? 9 : v === "balance" ? 18 : 0,
-            })
+            onChange(
+              v === "vaultYield"
+                ? {
+                    kind: v,
+                    transport: s.transport || "mcp",
+                    address: s.address || "",
+                    shareUnits: s.shareUnits || "1000000",
+                    lookbackBlocks: s.lookbackBlocks || 600000,
+                    label: s.label,
+                  }
+                : v === "fixed"
+                  ? {
+                      kind: v,
+                      transport: "rpc",
+                      value: s.value || "",
+                      label: s.label,
+                    }
+                : {
+                    ...s,
+                    kind: v,
+                    decimals: v === "gas" ? 9 : v === "balance" ? 18 : 0,
+                  },
+            )
           }
         />
-        <Control
-          label="Connection"
-          value={s.transport || "rpc"}
-          options={["rpc", "mcp", "skill"].map((x) => [
-            x,
-            {
-              rpc: "Pharos RPC",
-              mcp: "Chain MCP",
-              skill: "SkillEngine / Foundry",
-            }[x],
-          ])}
-          onChange={(v) => set("transport", v)}
-        />
+        {s.kind !== "fixed" && (
+          <Control
+            label="Connection"
+            value={s.transport || "rpc"}
+            options={["rpc", "mcp", "skill"].map((x) => [
+              x,
+              {
+                rpc: "Pharos RPC",
+                mcp: "Chain MCP",
+                skill: "SkillEngine / Foundry",
+              }[x],
+            ])}
+            onChange={(v) => set("transport", v)}
+          />
+        )}
       </div>
       {["balance", "contract"].includes(s.kind) && (
         <Control
@@ -135,17 +170,49 @@ export function SourceEditor({ value, onChange, label = "Chain source" }) {
           />
         </>
       )}
-      <Control
-        label="Decimals"
-        type="number"
-        value={s.decimals ?? 0}
-        help={
-          s.kind === "gas"
-            ? "9 displays gas price in gwei."
-            : "Raw integer divided by 10 to this power."
-        }
-        onChange={(v) => set("decimals", v)}
-      />
+      {s.kind === "vaultYield" && (
+        <>
+          <Control
+            label="ERC-4626 vault address"
+            value={s.address || ""}
+            onChange={(v) => set("address", v)}
+          />
+          <Control
+            label="Share units to compare"
+            value={s.shareUnits || "1000000"}
+            help="The same share quantity is read at two real blocks; 1,000,000 is suitable for 6-decimal vault shares."
+            onChange={(v) => set("shareUnits", v)}
+          />
+          <Control
+            label="Historical lookback (blocks)"
+            type="number"
+            value={s.lookbackBlocks || 600000}
+            help="Uses current and historical on-chain reads, then annualizes the measured share-value change using block timestamps."
+            onChange={(v) => set("lookbackBlocks", v)}
+          />
+        </>
+      )}
+      {s.kind === "fixed" && (
+        <Control
+          label="Configured value"
+          value={s.value || ""}
+          help="Use a current, independently verified quote. This is recorded as an operator-supplied assumption, not an on-chain oracle read."
+          onChange={(v) => set("value", v)}
+        />
+      )}
+      {!['vaultYield', 'fixed'].includes(s.kind) && (
+        <Control
+          label="Decimals"
+          type="number"
+          value={s.decimals ?? 0}
+          help={
+            s.kind === "gas"
+              ? "9 displays gas price in gwei."
+              : "Raw integer divided by 10 to this power."
+          }
+          onChange={(v) => set("decimals", v)}
+        />
+      )}
     </fieldset>
   );
 }
@@ -353,7 +420,11 @@ export function FeatureField({ field, value, onChange, moduleId, account }) {
               value={s.label || ""}
               onChange={(v) => set({ ...s, label: v })}
             />
-            <SourceEditor value={s} onChange={set} />
+            <SourceEditor
+              value={s}
+              onChange={set}
+              allowVaultYield={moduleId === "yield"}
+            />
           </>
         )}
       />
@@ -370,7 +441,12 @@ export function FeatureField({ field, value, onChange, moduleId, account }) {
     field.type === "json"
   )
     return (
-      <SourceEditor label={field.label} value={structured} onChange={change} />
+    <SourceEditor
+      label={field.label}
+      value={structured}
+      onChange={change}
+      allowFixed={moduleId === "yield" && field.name === "nativePrice"}
+    />
     );
   if (field.name === "transaction")
     return (
