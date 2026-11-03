@@ -606,6 +606,21 @@ textarea {
   line-height: 1.8;
   color: #667b97;
 }
+.chain-read {
+  margin: 14px 0;
+  padding: 13px 14px;
+  border: 1px solid #cfe0ff;
+  border-left: 3px solid #1747d1;
+  border-radius: 5px;
+  background: #f7faff;
+}
+.chain-read p {
+  margin: 6px 0;
+}
+.chain-read small {
+  color: #526b99;
+  overflow-wrap: anywhere;
+}
 .results-column a {
   font-size: 11px;
   overflow-wrap: anywhere;

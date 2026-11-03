@@ -123,6 +123,19 @@ function Evidence({ value }) {
         {value.reason && <p>{value.reason}</p>}
         {value.answer && <p>{value.answer}</p>}
         {value.explanation && <p>{value.explanation.answer}</p>}
+        {value.observation && (
+          <div className="chain-read">
+            <strong>Live Chain MCP read</strong>
+            <p>
+              <code>{value.observation.source?.function || "contract read"}</code>
+              {" returned "}
+              <b>{value.observation.value}</b>
+            </p>
+            <small>
+              Contract: {value.observation.source?.address} · Raw: {value.observation.raw} · Block: {value.observation.block} · {value.observation.transport}
+            </small>
+          </div>
+        )}
         {value.interpretation && <p>{value.interpretation}</p>}
         {value.success !== undefined && (
           <strong>
