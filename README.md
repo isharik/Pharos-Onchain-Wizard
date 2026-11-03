@@ -116,6 +116,8 @@ The project contains working feature flows, validation, persistence, and tests. 
 
 Vercel plus Supabase and the included scheduled workflow provides durable demo state and recurring checks. Production-grade 24/7 guarantees, transaction signing, and paid x402 usage still require the corresponding real service, wallet and protocol configuration.
 
+SkillEngine uses the official Foundry `cast` runtime. The project packages the Windows and Linux x64 runtime binaries so Vercel and local Windows development select the correct executable automatically. If deployment reports a missing `cast` binary, redeploy the current `main` branch so Vercel installs the Linux optional dependency.
+
 The application does not fabricate those results or auto-send transactions.
 
 ## Project documentation

@@ -97,6 +97,8 @@ export function configFromEnv(env = process.env) {
       env.CAST_BIN ||
       (process.platform === "win32"
         ? resolve("node_modules/@foundry-rs/cast-win32-amd64/bin/cast.exe")
+        : process.platform === "linux" && process.arch === "x64"
+          ? resolve("node_modules/@foundry-rs/cast-linux-amd64/bin/cast")
         : "cast"),
     discord: env.DISCORD_WEBHOOK_URL,
     telegramToken: env.TELEGRAM_BOT_TOKEN,
