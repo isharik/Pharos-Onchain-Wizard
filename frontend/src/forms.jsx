@@ -378,17 +378,19 @@ export function FeatureField({ field, value, onChange, moduleId, account }) {
         <label className="control">
           <span>{field.label}</span>
         </label>
-        {moduleId === "arbitrage" && (
+        {["arbitrage", "yield"].includes(moduleId) && (
           <label className="review">
             <input
               type="checkbox"
               checked={!!structured}
               onChange={(e) => change(e.target.checked ? emptyTx() : null)}
             />
-            Prepare a reviewed route transaction when profitable
+            {moduleId === "yield"
+              ? "Prepare this reviewed rebalance transaction only when a move is recommended"
+              : "Prepare a reviewed route transaction when profitable"}
           </label>
         )}
-        {(structured || moduleId !== "arbitrage") && (
+        {(structured || !["arbitrage", "yield"].includes(moduleId)) && (
           <TransactionEditor
             value={structured}
             onChange={change}

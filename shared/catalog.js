@@ -224,6 +224,13 @@ export const catalog = [
       field("exitBps", "Exit fee (bps)", "number", 0),
       field("gasUnits", "Rebalance gas estimate", "text", "300000"),
       field("nativePrice", "Native price in shared quote units", "json", call),
+      field(
+        "transaction",
+        "Optional reviewed rebalance transaction",
+        "json",
+        null,
+        "Prepared for your wallet only after a positive recommendation; it is never signed or broadcast by Pharos.",
+      ),
     ],
   },
   {

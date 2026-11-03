@@ -1,6 +1,6 @@
 import { z } from "zod";
 import Decimal from "decimal.js";
-import { source, positive, count } from "../validation.js";
+import { source, positive, count, transaction } from "../validation.js";
 import { observations } from "../infrastructure/sources.js";
 import { requireThat } from "../errors.js";
 export const schema = z.object({
@@ -12,6 +12,10 @@ export const schema = z.object({
   exitBps: count(0, 10000),
   gasUnits: positive,
   nativePrice: source,
+  // A route is deliberately supplied by the user or an audited route builder.
+  // This module only prepares it after the economics are favourable; it never
+  // constructs an opaque swap or has access to a signing key.
+  transaction: transaction.nullable().optional(),
 });
 export async function execute(ctx, input) {
   requireThat(
@@ -60,7 +64,7 @@ export async function execute(ctx, input) {
     .sort((a, b) => new Decimal(b.netGain).cmp(a.netGain));
   const best = rows[0];
   const move = best.index !== input.current && new Decimal(best.netGain).gt(0);
-  return {
+  const result = {
     block,
     observations: values,
     rows,
@@ -72,4 +76,16 @@ export async function execute(ctx, input) {
     assumptions:
       "APR fractions must use the same asset/quote units; linear accrual, constant APR, supplied gas estimate. Recommendation only.",
   };
+  if (move && input.transaction)
+    result.intent = await ctx.wallet.prepare(
+      input.transaction,
+      `yield:${ctx.runId}`,
+      {
+        feature: "yield-optimizer",
+        source: input.sources[best.index].label || `Source ${best.index + 1}`,
+        expectedNetGain: best.netGain,
+        holdingDays: input.holdingDays,
+      },
+    );
+  return result;
 }

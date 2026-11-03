@@ -317,6 +317,49 @@ test("C10 three live-observation fixtures account for cost and holding days", as
     ctx.store.close();
   }
 });
+test("C10 prepares a reviewed rebalance only after a positive recommendation", async () => {
+  const ctx = context();
+  try {
+    const m = await resolveModule("yield");
+    let prepared;
+    ctx.wallet.prepare = async (tx, key, metadata) => {
+      prepared = { tx, key, metadata };
+      return { id: "yield-intent", status: "prepared", transaction: tx };
+    };
+    const input = {
+      sources: [
+        { ...gas, label: "Current" },
+        { ...balance, label: "Higher yield" },
+        { ...block, label: "Third source" },
+      ],
+      current: 0,
+      principal: "1000",
+      holdingDays: 30,
+      entryBps: 5,
+      exitBps: 5,
+      gasUnits: "100",
+      nativePrice: gas,
+      transaction,
+    };
+    const result = await m.execute(ctx, input);
+    assert.equal(result.decision, "recommend-rebalance");
+    assert.equal(result.intent.status, "prepared");
+    assert.deepEqual(prepared.tx, transaction);
+    assert.equal(prepared.metadata.feature, "yield-optimizer");
+
+    ctx.wallet.prepare = async () => assert.fail("must not prepare on stay-put");
+    const noMove = await m.execute(ctx, {
+      ...input,
+      current: 2,
+      entryBps: 10000,
+      exitBps: 10000,
+    });
+    assert.equal(noMove.decision, "stay-put");
+    assert.equal(noMove.intent, undefined);
+  } finally {
+    ctx.store.close();
+  }
+});
 test("C11 health alert includes concrete repayment and timestamps via notification layer", async () => {
   const ctx = context();
   try {
