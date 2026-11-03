@@ -74,31 +74,34 @@ Copy `.env.example` to `.env` to configure optional services such as Discord, Te
 
 Default network: Pharos Mainnet, chain ID `1672`, RPC `https://rpc.pharos.xyz`, native token `PROS`.
 
-## Temporary Vercel + Render team testing
+## Free Vercel deployment with durable state
 
-Vercel hosts the browser interface; Render hosts the API and SQLite-backed workspace. To let a team review it briefly without an administrator login, deploy the repository to Render as a **Web Service** with build command `npm ci && npm run build` and start command `npm run start`, then configure:
+The repository includes a same-origin Vercel Function at `/api/*`, so the dashboard and API can be deployed as one Vercel project without Render or an administrator login. Remove `VITE_API_BASE_URL` from Vercel Environment Variables so the frontend calls its own `/api` route. Keep the Vite defaults (`npm run build`, output directory `dist`, root `./`) and redeploy.
 
-```env
-HOST=0.0.0.0
-PUBLIC_ORIGIN=https://your-render-service.onrender.com
-CORS_ORIGIN=https://your-vercel-project.vercel.app
-ALLOW_PUBLIC_ACCESS=true
-DATA_DIR=/tmp/pharos-data
-```
+For durable execution history, monitor cursors, payment deduplication and schedules on Vercel, use the Supabase Free plan:
 
-Remove `ADMIN_USERNAME` and `ADMIN_PASSWORD_HASH` from that Render service. On Vercel, import the repository as a Vite project and add this build-time variable:
+1. Create a Supabase project and open **SQL Editor**.
+2. Run [`docs/supabase.sql`](docs/supabase.sql) once.
+3. In Vercel **Settings → Environment Variables**, add these server-side production secrets:
 
 ```env
-VITE_API_BASE_URL=https://your-render-service.onrender.com
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+CRON_SECRET=a-long-random-secret
 ```
 
-Redeploy Vercel after setting the variable. This mode makes the shared workspace writable by anyone with its Vercel URL, so do not set private notification or payment credentials, and remove `ALLOW_PUBLIC_ACCESS` after the review. Render free-tier `/tmp` data is erased when its instance restarts; attach a persistent disk and use `DATA_DIR=/var/data` if retained history is required.
+Never use `VITE_` for the Supabase service-role key. It must never enter browser code. Redeploy after adding the values. With no Supabase values, local SQLite remains the default for local development and temporary Vercel review sessions.
 
-## Vercel-only review deployment
+### Free scheduled monitor checks
 
-The repository also includes a same-origin Vercel Function at `/api/*`, so a reviewer can deploy one Vercel project without Render or an administrator login. Before redeploying, remove `VITE_API_BASE_URL` from Vercel Environment Variables so the frontend calls its own `/api` route. Keep the Vite defaults (`npm run build`, output directory `dist`, root `./`) and redeploy. The versioned rewrite sends every nested API route to the function without interfering with the Vite app.
+The included GitHub Actions workflow, [`.github/workflows/pharos-monitor.yml`](.github/workflows/pharos-monitor.yml), invokes enabled monitor jobs every 15 minutes. In the GitHub repository, add these **Actions secrets**:
 
-Vercel Functions may be recycled at any time. Their `/tmp` database and scheduled monitor loop are therefore not durable. Use the Render deployment with a persistent disk for durable activity history and continuous monitors.
+```text
+PHAROS_CRON_URL=https://your-vercel-project.vercel.app/api/cron/tick
+PHAROS_CRON_SECRET=the-same-value-as-CRON_SECRET
+```
+
+Use **Actions → Pharos monitor tick → Run workflow** to test it immediately. The endpoint is secret-protected. Free scheduled services can be delayed and are appropriate for a demonstration, not a production uptime guarantee.
 
 ## Important limits
 
@@ -110,6 +113,8 @@ The project contains working feature flows, validation, persistence, and tests. 
 - Three comparable live APR sources for yield comparison.
 - A real lending position for liquidation monitoring.
 - Two live x402 endpoints and a compatible wallet for x402 payments.
+
+Vercel plus Supabase and the included scheduled workflow provides durable demo state and recurring checks. Production-grade 24/7 guarantees, transaction signing, and paid x402 usage still require the corresponding real service, wallet and protocol configuration.
 
 The application does not fabricate those results or auto-send transactions.
 

@@ -70,6 +70,32 @@ export class Store {
         error: r.error ? JSON.parse(r.error) : null,
       }));
   }
+  snapshot() {
+    const all = (table) => this.db.prepare(`SELECT * FROM ${table}`).all();
+    return {
+      executions: all("executions"),
+      state: all("state"),
+      events: all("events"),
+      jobs: all("jobs"),
+    };
+  }
+  restore(snapshot = {}) {
+    const tables = ["executions", "state", "events", "jobs"];
+    this.atomic(() => {
+      for (const table of tables) {
+        const rows = Array.isArray(snapshot[table]) ? snapshot[table] : [];
+        for (const row of rows) {
+          const keys = Object.keys(row);
+          if (!keys.length) continue;
+          const columns = keys.join(",");
+          const marks = keys.map(() => "?").join(",");
+          this.db
+            .prepare(`INSERT OR REPLACE INTO ${table} (${columns}) VALUES (${marks})`)
+            .run(...keys.map((key) => row[key]));
+        }
+      }
+    });
+  }
   close() {
     this.db.close();
   }

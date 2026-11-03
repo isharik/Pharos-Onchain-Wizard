@@ -70,6 +70,7 @@ export function createApp(ctx) {
     if (
       !ctx.config.vercel &&
       req.method !== "GET" &&
+      req.path !== "/api/cron/tick" &&
       req.headers["x-pharos-token"] !== csrf
     )
       return res
@@ -171,6 +172,16 @@ export function createApp(ctx) {
       scheduler.list().map((j) => ({ ...j, input: JSON.parse(j.input) })),
     ),
   );
+  app.post("/api/cron/tick", async (req, res) => {
+    if (!ctx.config.cronSecret)
+      throw new AppError("NOT_CONFIGURED", "CRON_SECRET is not configured", 503);
+    const supplied = req.headers.authorization?.replace(/^Bearer\s+/i, "");
+    if (supplied !== ctx.config.cronSecret)
+      throw new AppError("FORBIDDEN", "Invalid cron authorization", 403);
+    const before = scheduler.list().filter((job) => job.enabled && job.next_run <= Date.now()).length;
+    await scheduler.tick();
+    res.json({ ok: true, dueJobs: before, checkedAt: new Date().toISOString() });
+  });
   app.post("/api/jobs", async (req, res) =>
     res
       .status(201)

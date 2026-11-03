@@ -1,0 +1,22 @@
+name: Pharos monitor tick
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/15 * * * *"
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run enabled Pharos monitor jobs
+        env:
+          CRON_URL: ${{ secrets.PHAROS_CRON_URL }}
+          CRON_SECRET: ${{ secrets.PHAROS_CRON_SECRET }}
+        run: |
+          test -n "$CRON_URL"
+          test -n "$CRON_SECRET"
+          curl --fail --silent --show-error --retry 2 \
+            --request POST "$CRON_URL" \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            --header "Content-Type: application/json"

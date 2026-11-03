@@ -104,6 +104,8 @@ export function authentication(app, ctx) {
     res.json({ ok: true });
   });
   app.use("/api", (req, res, next) => {
+    // A scheduler has its own bearer secret and cannot carry a browser session.
+    if (req.path === "/cron/tick") return next();
     if (enabled && !valid(req))
       return res
         .status(401)

@@ -27,6 +27,13 @@ export function configFromEnv(env = process.env) {
   const publicOrigin = env.PUBLIC_ORIGIN;
   const corsOrigin = env.CORS_ORIGIN;
   const allowPublicAccess = env.ALLOW_PUBLIC_ACCESS === "true";
+  if (!!env.SUPABASE_URL !== !!env.SUPABASE_SERVICE_ROLE_KEY)
+    throw new Error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set together");
+  if (env.SUPABASE_URL) {
+    const supabase = new URL(env.SUPABASE_URL);
+    if (supabase.protocol !== "https:")
+      throw new Error("SUPABASE_URL must use HTTPS");
+  }
   if (
     publicOrigin &&
     (!publicOrigin.startsWith("https://") ||
@@ -94,5 +101,8 @@ export function configFromEnv(env = process.env) {
     discord: env.DISCORD_WEBHOOK_URL,
     telegramToken: env.TELEGRAM_BOT_TOKEN,
     telegramChat: env.TELEGRAM_CHAT_ID,
+    supabaseUrl: env.SUPABASE_URL,
+    supabaseServiceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
+    cronSecret: env.CRON_SECRET,
   };
 }
