@@ -8,6 +8,7 @@ import { Scheduler } from "./scheduler.js";
 import { AppError, safeError } from "./errors.js";
 import { evaluate } from "./modules/policy.js";
 import { authentication } from "./auth.js";
+import { settleX402Payment, x402Ledger } from "./infrastructure/x402.js";
 export function createApp(ctx) {
   const app = express();
   const runner = new Runner(ctx),
@@ -166,6 +167,10 @@ export function createApp(ctx) {
   app.get("/api/history", (req, res) => res.json(ctx.store.history()));
   app.get("/api/events", (req, res) =>
     res.json(ctx.store.events(req.query.kind || "chain-event")),
+  );
+  app.get("/api/x402/ledger", (req, res) => res.json(x402Ledger(ctx)));
+  app.post("/api/x402/settle", async (req, res) =>
+    res.json(await settleX402Payment(ctx, req.body)),
   );
   app.get("/api/jobs", (req, res) =>
     res.json(

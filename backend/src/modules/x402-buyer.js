@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { createHash } from "node:crypto";
+import { isAddress } from "ethers";
 import { AppError, requireThat } from "../errors.js";
 
 const schemaUrl = z.string().url().refine((value) => new URL(value).protocol === "https:", "Only HTTPS endpoints are allowed");
@@ -15,7 +16,7 @@ const timeoutFetch = async (url) => {
   try { return await fetch(url, { signal: controller.signal, redirect: "error", headers: { accept: "application/json" } }); }
   finally { clearTimeout(timer); }
 };
-function offer(response, body) {
+export function offer(response, body) {
   const encoded = response.headers.get("payment-required");
   let payload = body;
   if (encoded) {
@@ -24,7 +25,18 @@ function offer(response, body) {
   const option = payload?.accepts?.[0] || payload;
   const amount = option?.amount ?? option?.maxAmountRequired;
   requireThat(amount !== undefined && /^\d+$/.test(String(amount)), "Endpoint did not provide a supported x402 price", "X402_UNSUPPORTED");
-  return { amount: String(amount), asset: option.asset || option.currency || "unknown", payTo: option.payTo || option.recipient || "unknown" };
+  const chainId = Number(option?.extra?.chainId || String(option?.network || "").split(":")[1]);
+  requireThat(isAddress(option?.payTo || option?.recipient || ""), "Endpoint did not provide a valid x402 recipient", "X402_UNSUPPORTED");
+  requireThat(Number.isSafeInteger(chainId) && chainId > 0, "Endpoint did not provide a supported x402 chain", "X402_UNSUPPORTED");
+  return {
+    amount: String(amount),
+    asset: option.asset || option.currency || "unknown",
+    payTo: option.payTo || option.recipient,
+    scheme: option.scheme || "unknown",
+    network: option.network || "unknown",
+    chainId,
+    resource: payload?.resource || (response.url ? new URL(response.url).pathname : "/"),
+  };
 }
 export async function execute(ctx, input) {
   let spent = 0n;
@@ -41,7 +53,7 @@ export async function execute(ctx, input) {
       let body; try { body = JSON.parse(text); } catch { body = {}; }
       const quote = offer(response, body), price = BigInt(quote.amount), budget = BigInt(input.budget), cap = BigInt(input.priceCap);
       const permitted = price <= cap && spent + price <= budget;
-      const row = { id, endpoint, status: permitted ? "approval-required" : "refused", price: quote.amount, asset: quote.asset, payTo: quote.payTo, runningTotal: spent.toString(), reason: permitted ? "Explicit wallet approval is required before any x402 payment." : price > cap ? "Per-call price cap exceeded." : "Total budget exceeded." };
+      const row = { id, endpoint, status: permitted ? "approval-required" : "refused", price: quote.amount, asset: quote.asset, payTo: quote.payTo, scheme: quote.scheme, network: quote.network, chainId: quote.chainId, resource: quote.resource, runningTotal: spent.toString(), reason: permitted ? "Explicit wallet approval is required before any x402 payment." : price > cap ? "Per-call price cap exceeded." : "Total budget exceeded." };
       if (permitted) spent += price;
       row.runningTotal = spent.toString();
       ctx.store.event(`x402:${id}`, "x402-payment", row);
@@ -50,5 +62,13 @@ export async function execute(ctx, input) {
       ledger.push({ endpoint, status: "failed", reason: error.message, retrySafe: true });
     }
   }
-  return { task: input.task, ledger, spent: spent.toString(), budget: input.budget, completed: false, nextStep: "Connect a wallet and explicitly approve each accepted payment. This application never auto-signs or counts a payment twice." };
+  return {
+    task: input.task,
+    ledger,
+    offers: ledger.filter((item) => item.status === "approval-required"),
+    spent: spent.toString(),
+    budget: input.budget,
+    completed: false,
+    nextStep: "Review each accepted offer and explicitly sign from your browser wallet. Payment confirmation is retained by transaction hash; this application never auto-signs or counts a payment twice.",
+  };
 }

@@ -4,6 +4,7 @@ import { Interface } from "ethers";
 import { Docs, rankPages, excerptFrom } from "../src/infrastructure/docs.js";
 import { hashPassword, verifyPassword } from "../src/auth.js";
 import { configFromEnv } from "../src/config.js";
+import { settleX402Payment } from "../src/infrastructure/x402.js";
 import { resolveModule } from "../src/modules/registry.js";
 import {
   context,
@@ -17,6 +18,43 @@ import {
   balance,
   block,
 } from "./helpers.js";
+test("x402 settlement stores a receipt once and rejects cross-resource transaction reuse", async () => {
+  const ctx = context(), originalFetch = global.fetch;
+  const endpoint = "https://seller.example/data";
+  const txHash = "0x" + "a".repeat(64);
+  const challenge = {
+    x402Version: 2,
+    resource: "/data",
+    accepts: [{
+      scheme: "pharos-native-transfer",
+      network: "eip155:688689",
+      asset: "native:PHRS",
+      amount: "5000",
+      payTo: B,
+      extra: { chainId: 688689 },
+    }],
+  };
+  try {
+    global.fetch = async (_url, options = {}) => {
+      if (!options.headers?.["payment-signature"])
+        return new Response(JSON.stringify(challenge), { status: 402, headers: { "content-type": "application/json" } });
+      return new Response(JSON.stringify({ settlement: { success: true, transaction: txHash, resource: "/data", blockNumber: 99 } }), { status: 200, headers: { "content-type": "application/json" } });
+    };
+    const input = { endpoint, txHash, payer: A, budget: "6000", priceCap: "5000" };
+    const settled = await settleX402Payment(ctx, input);
+    assert.equal(settled.status, "settled");
+    assert.equal(settled.runningTotal, "5000");
+    const repeat = await settleX402Payment(ctx, input);
+    assert.equal(repeat.duplicate, true);
+    await assert.rejects(
+      settleX402Payment(ctx, { ...input, endpoint: "https://seller.example/premium" }),
+      /already used/,
+    );
+  } finally {
+    global.fetch = originalFetch;
+    ctx.store.close();
+  }
+});
 test("Public configuration requires credentials and TLS origin", () => {
   assert.throws(() => configFromEnv({ HOST: "0.0.0.0" }));
   const hash = hashPassword("a sufficiently long password");

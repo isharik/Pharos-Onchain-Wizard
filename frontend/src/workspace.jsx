@@ -113,7 +113,8 @@ function Evidence({ value }) {
     value.reports ||
     value.rows ||
     value.venues ||
-    value.payments;
+    value.payments ||
+    value.ledger;
   return (
     <>
       <div className="result-summary">
@@ -265,7 +266,9 @@ export default function Workspace({ module, network, account, refresh, health, c
     [hash, setHash] = useState(""),
     [tab, setTab] = useState("workspace"),
     [history, setHistory] = useState([]),
-    [jobs, setJobs] = useState([]);
+    [jobs, setJobs] = useState([]),
+    [x402Approvals, setX402Approvals] = useState({}),
+    [x402Payments, setX402Payments] = useState([]);
   const dependencyStatus = (dependency) => {
     if (dependency === "wallet") return account ? "connected" : "not connected";
     if (dependency === "channel") return configuration?.channelConfigured ? "configured" : "not configured";
@@ -273,9 +276,12 @@ export default function Workspace({ module, network, account, refresh, health, c
   };
   const load = async () => {
     try {
-      const [h, j] = await Promise.all([api("/history"), api("/jobs")]);
+      const requests = [api("/history"), api("/jobs")];
+      if (module.id === "x402-buyer") requests.push(api("/x402/ledger"));
+      const [h, j, payments] = await Promise.all(requests);
       setHistory(h.filter((x) => x.module === module.id));
       setJobs(j.filter((x) => x.module === module.id));
+      if (payments) setX402Payments(payments);
     } catch (e) {
       setError(e.message);
     }
@@ -319,6 +325,67 @@ export default function Workspace({ module, network, account, refresh, health, c
       if (result.error) setError(result.error.message);
       await load();
       refresh();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function payX402(offer) {
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      if (!window.ethereum) throw new Error("Connect a browser wallet first.");
+      const requestedChain = "0x" + BigInt(offer.chainId).toString(16);
+      let chain = await window.ethereum.request({ method: "eth_chainId" });
+      if (chain.toLowerCase() !== requestedChain.toLowerCase()) {
+        try {
+          await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: requestedChain }] });
+        } catch (switchError) {
+          if (switchError.code !== 4902) throw switchError;
+          await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [{
+              chainId: requestedChain,
+              chainName: "Pharos Atlantic",
+              nativeCurrency: { name: "PHRS", symbol: "PHRS", decimals: 18 },
+              rpcUrls: ["https://atlantic.dplabs-internal.com"],
+              blockExplorerUrls: ["https://atlantic.pharosscan.xyz"],
+            }],
+          });
+        }
+        chain = await window.ethereum.request({ method: "eth_chainId" });
+      }
+      if (chain.toLowerCase() !== requestedChain.toLowerCase())
+        throw new Error(`Switch your wallet to chain ${offer.chainId} before paying.`);
+      const accounts = await window.ethereum.request({ method: "eth_accounts" });
+      const payer = accounts[0];
+      if (!payer) throw new Error("Connect a wallet account before paying.");
+      const transactionHash = await window.ethereum.request({
+        method: "eth_sendTransaction",
+        params: [{ from: payer, to: offer.payTo, value: "0x" + BigInt(offer.price).toString(16), data: "0x" }],
+      });
+      let settlement;
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        try {
+          settlement = await api("/x402/settle", {
+            endpoint: offer.endpoint,
+            txHash: transactionHash,
+            payer,
+            budget: values.budget,
+            priceCap: values.priceCap,
+          });
+          break;
+        } catch (settleError) {
+          if (!/not confirmed|not mined|pending/i.test(settleError.message) || attempt === 4)
+            throw settleError;
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+        }
+      }
+      setX402Payments((items) => [settlement, ...items.filter((item) => item.transactionHash !== settlement.transactionHash)]);
+      setNotice(`Payment settled for ${settlement.resource}. Transaction: ${settlement.transactionHash}`);
+      await load();
     } catch (e) {
       setError(e.message);
     } finally {
@@ -719,6 +786,37 @@ export default function Workspace({ module, network, account, refresh, health, c
                 </div>
               )}
             </section>
+            {module.id === "x402-buyer" && run?.result?.offers?.length > 0 && (
+              <section className="panel">
+                <div className="section-heading">
+                  <div>
+                    <h2>Review x402 payments</h2>
+                    <span className="muted">Each payment is signed only by your browser wallet on the offer’s requested network.</span>
+                  </div>
+                </div>
+                <div className="output-list">
+                  {run.result.offers.map((offer) => {
+                    const approved = x402Approvals[offer.id] || false;
+                    const paid = x402Payments.find((payment) => payment.endpoint === offer.endpoint);
+                    return <div className="output-item" key={offer.id}>
+                      <strong>{offer.resource}</strong>
+                      <small>{offer.endpoint}</small>
+                      <span>{offer.price} base units · {offer.asset} · chain {offer.chainId}</span>
+                      <small>Pay to: {offer.payTo}</small>
+                      {paid ? <span>Settled: {paid.transactionHash}</span> : <>
+                        <label className="review">
+                          <input type="checkbox" checked={approved} onChange={(e) => setX402Approvals((items) => ({ ...items, [offer.id]: e.target.checked }))} />
+                          I reviewed the endpoint, price, recipient, and requested network.
+                        </label>
+                        <button className="primary" disabled={!approved || busy} onClick={() => payX402(offer)}>
+                          Pay & unlock in wallet
+                        </button>
+                      </>}
+                    </div>;
+                  })}
+                </div>
+              </section>
+            )}
             {intent && (
               <section className="panel">
                 <h2>Review transaction</h2>

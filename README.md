@@ -37,7 +37,7 @@ The application is non-custodial: it never stores private keys or signs transact
 | WHALE-WATCHING AGENT | Tracks significant ERC-20 transfers for five or more watched addresses. |
 | MULTI-PROTOCOL AGGREGATOR | Compares ERC-4626 vaults and prepares a user-signed deposit or withdrawal. |
 | EVENT/LOG MONITOR | Polls Chain MCP for new contract events and persists decoded results. |
-| X402 AGENT BUYER | Inspects two x402 paid APIs, enforces spend limits, and keeps an idempotent payment ledger. |
+| X402 AGENT BUYER | Inspects two x402 paid APIs, enforces spend limits, and settles explicit browser-wallet payments into an idempotent ledger. |
 
 ## Run locally
 
@@ -67,6 +67,7 @@ npm run test:live
 - Threshold Guardian includes a safe three-read mainnet configuration.
 - Event/Log Monitor has a WPROS Transfer example in `config/events-live.json`.
 - Multi-Protocol Aggregator includes two verified Pharos mainnet ERC-4626 vaults in `config/aggregator-live.json`.
+- X402 Agent Buyer supports OctoBot's public Pharos Atlantic x402 routes: `/data` (0.005 PHRS) and `/premium` (0.01 PHRS). It switches a browser wallet to chain `688689`, receives an explicit signature, then replays the facilitator request with a settlement proof.
 
 ## Configuration
 
@@ -112,7 +113,7 @@ The project contains working feature flows, validation, persistence, and tests. 
 - Verified same-asset price sources for arbitrage.
 - Three comparable live APR sources for yield comparison.
 - A real lending position for liquidation monitoring.
-- Two live x402 endpoints and a compatible wallet for x402 payments.
+- Two live x402 endpoints and a compatible wallet for x402 payments. The included OctoBot demonstration endpoints require Atlantic testnet PHRS on chain `688689`; signing always remains in the user’s browser wallet.
 
 Vercel plus Supabase and the included scheduled workflow provides durable demo state and recurring checks. Production-grade 24/7 guarantees, transaction signing, and paid x402 usage still require the corresponding real service, wallet and protocol configuration.
 
