@@ -373,6 +373,7 @@ export default function Workspace({ module, network, account, refresh, health, c
             endpoint: offer.endpoint,
             txHash: transactionHash,
             payer,
+            task: values.task,
             budget: values.budget,
             priceCap: values.priceCap,
           });

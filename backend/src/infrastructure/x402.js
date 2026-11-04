@@ -51,6 +51,7 @@ export async function settleX402Payment(ctx, input) {
   requireThat(/^0x[0-9a-fA-F]{64}$/.test(input.txHash), "A valid transaction hash is required");
   requireThat(isAddress(input.payer), "A valid payer address is required");
   requireThat(/^\d+$/.test(input.budget) && /^\d+$/.test(input.priceCap), "Budget and price cap must be whole base units");
+  requireThat(typeof input.task === "string" && input.task.trim().length >= 3 && input.task.length <= 500, "A task description is required");
 
   const txKey = `x402:transaction:${input.txHash.toLowerCase()}`;
   const existing = ctx.store.get(txKey);
@@ -69,7 +70,9 @@ export async function settleX402Payment(ctx, input) {
   const price = BigInt(quote.amount), cap = BigInt(input.priceCap), budget = BigInt(input.budget);
   requireThat(price <= cap, "Per-call price cap exceeded", "X402_PRICE_CAP");
   const ledger = ctx.store.get("x402:ledger", []);
-  const spent = ledger.reduce((total, item) => total + BigInt(item.price || "0"), 0n);
+  const spent = ledger
+    .filter((item) => item.task === input.task)
+    .reduce((total, item) => total + BigInt(item.price || "0"), 0n);
   requireThat(spent + price <= budget, "Total budget exceeded", "X402_BUDGET");
 
   const paid = await fetchWithTimeout(endpoint, {
@@ -88,6 +91,7 @@ export async function settleX402Payment(ctx, input) {
   const item = {
     id: createHash("sha256").update(`${endpoint}:${input.txHash.toLowerCase()}`).digest("hex"),
     endpoint,
+    task: input.task,
     resource: receipt.resource || quote.resource,
     price: quote.amount,
     asset: quote.asset,

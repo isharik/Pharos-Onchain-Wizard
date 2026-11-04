@@ -40,7 +40,7 @@ test("x402 settlement stores a receipt once and rejects cross-resource transacti
         return new Response(JSON.stringify(challenge), { status: 402, headers: { "content-type": "application/json" } });
       return new Response(JSON.stringify({ settlement: { success: true, transaction: txHash, resource: "/data", blockNumber: 99 } }), { status: 200, headers: { "content-type": "application/json" } });
     };
-    const input = { endpoint, txHash, payer: A, budget: "6000", priceCap: "5000" };
+    const input = { endpoint, txHash, payer: A, task: "x402 unit payment", budget: "6000", priceCap: "5000" };
     const settled = await settleX402Payment(ctx, input);
     assert.equal(settled.status, "settled");
     assert.equal(settled.runningTotal, "5000");
