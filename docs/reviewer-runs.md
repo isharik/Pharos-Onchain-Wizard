@@ -15,7 +15,7 @@ Both workflows require a browser wallet controlled by the reviewer or presenter.
 3. For the first offer, review the destination, amount, and Atlantic network. Tick the review box and click **Pay & unlock in wallet**. Confirm only if the wallet shows the same details.
 4. Wait for the payment to settle. Open the explorer link and the **Purchased API result**. The persistent ledger should show the price, resource, transaction hash, and running total.
 5. Repeat for the second resource. The page should show **2/2 resources purchased** and both real API results. Record both explorer transaction links.
-6. Click **Load budget-stop run**, then **Inspect paid APIs**. The second offer must be refused because its price would exceed the 0.005 PHRS total budget. This check requires no payment. Record that decision and its reason.
+6. Click **Load budget-stop run**, then **Inspect paid APIs**. Pay for the first resource with a separate wallet confirmation. The second offer must be refused because its price would exceed the 0.005 PHRS total budget. The page should show one purchase out of two requested resources, not a completed task. Record the first transaction link and the refusal reason.
 7. If the wallet returned a transaction hash but API settlement is delayed, use **Verify existing payment**. The hash remains in this browser until verified. Do not press a new pay button or send a second transfer.
 
 The OctoBot seller currently implements a Pharos native-transfer x402 scheme. Other x402 payment schemes are intentionally refused before wallet approval. The buyer does not claim a paid call succeeded until the seller returns a matching settlement receipt.

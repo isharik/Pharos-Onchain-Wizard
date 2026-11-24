@@ -131,8 +131,9 @@ export async function settleX402Payment(ctx, input) {
   return {
     ...item,
     receipt,
-    taskComplete: session.offers.every((approved) =>
-      completedPayments.some((payment) => payment.endpoint === approved.endpoint)),
+    taskComplete: session.requestedEndpoints?.length === 2 &&
+      session.requestedEndpoints.every((requested) =>
+        completedPayments.some((payment) => payment.endpoint === requested)),
   };
 }
 

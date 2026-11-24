@@ -69,6 +69,7 @@ export async function execute(ctx, input) {
     task: input.task,
     budget: input.budget,
     priceCap: input.priceCap,
+    requestedEndpoints: input.endpoints,
     offers: ledger.filter((item) => item.status === "approval-required"),
   });
   return {

@@ -889,7 +889,7 @@ export default function Workspace({ module, network, account, refresh, health, c
                   </div>
                 </div>
                 <div className="output-list">
-                  <p className="feature-note">{run.result.offers.filter((offer) => x402Payments.some((payment) => payment.sessionId === run.result.sessionId && payment.endpoint === offer.endpoint)).length}/{run.result.offers.length} resources purchased · budget {run.result.budget} base units</p>
+                  <p className="feature-note">{run.result.offers.filter((offer) => x402Payments.some((payment) => payment.sessionId === run.result.sessionId && payment.endpoint === offer.endpoint)).length}/{run.result.ledger.length} resources purchased · budget {run.result.budget} base units</p>
                   {run.result.offers.map((offer) => {
                     const approved = x402Approvals[offer.id] || false;
                     const paid = x402Payments.find((payment) => payment.sessionId === run.result.sessionId && payment.endpoint === offer.endpoint);

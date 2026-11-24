@@ -37,6 +37,7 @@ test("x402 settlement stores a receipt once and rejects cross-resource transacti
   try {
     ctx.store.set("x402:session:demo-run", {
       task: "x402 unit payment", budget: "6000", priceCap: "5000",
+      requestedEndpoints: [endpoint],
       offers: [{ endpoint, price: "5000", payTo: B, chainId: 688689, asset: "native:PHRS", network: "eip155:688689" }],
     });
     global.fetch = async (_url, options = {}) => {
@@ -47,6 +48,7 @@ test("x402 settlement stores a receipt once and rejects cross-resource transacti
     const input = { endpoint, txHash, payer: A, sessionId: "demo-run" };
     const settled = await settleX402Payment(ctx, input);
     assert.equal(settled.status, "settled");
+    assert.equal(settled.taskComplete, false);
     assert.equal(settled.runningTotal, "5000");
     assert.equal(ctx.store.get("x402:ledger")[0].runningTotal, "5000");
     const repeat = await settleX402Payment(ctx, input);
@@ -66,6 +68,7 @@ test("x402 refuses changed payment terms before replay", async () => {
   try {
     ctx.store.set("x402:session:changed", {
       task: "test", budget: "10000", priceCap: "5000",
+      requestedEndpoints: [endpoint],
       offers: [{ endpoint, price: "5000", payTo: B, chainId: 688689, asset: "native:PHRS", network: "eip155:688689" }],
     });
     global.fetch = async () => new Response(JSON.stringify({
@@ -78,7 +81,10 @@ test("x402 refuses changed payment terms before replay", async () => {
 test("x402 buyer inspects two paid endpoints and refuses a budget overflow", async () => {
   const ctx = context(), originalFetch = global.fetch;
   try {
-    global.fetch = async (url) => new Response(JSON.stringify({
+    const txHash = "0x" + "c".repeat(64);
+    global.fetch = async (url, options = {}) => options.headers?.["payment-signature"]
+      ? new Response(JSON.stringify({ settlement: { success: true, transaction: txHash, resource: "/data" } }), { status: 200 })
+      : new Response(JSON.stringify({
       x402Version: 2,
       resource: new URL(url).pathname,
       accepts: [{ scheme: "pharos-native-transfer", network: "eip155:688689", asset: "native:PHRS", amount: url.endsWith("/data") ? "5" : "10", payTo: B }],
@@ -95,6 +101,11 @@ test("x402 buyer inspects two paid endpoints and refuses a budget overflow", asy
     assert.equal(result.ledger[1].status, "refused");
     assert.match(result.ledger[1].reason, /budget/i);
     assert.equal(ctx.store.get(`x402:session:${ctx.runId}`).offers.length, 1);
+    assert.equal(ctx.store.get(`x402:session:${ctx.runId}`).requestedEndpoints.length, 2);
+    const settled = await settleX402Payment(ctx, {
+      endpoint: "https://seller.example/data", sessionId: ctx.runId, payer: A, txHash,
+    });
+    assert.equal(settled.taskComplete, false);
   } finally { global.fetch = originalFetch; ctx.store.close(); }
 });
 test("Public configuration requires credentials and TLS origin", () => {
