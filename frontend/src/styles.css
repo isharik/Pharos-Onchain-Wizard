@@ -978,6 +978,19 @@ code {
 .quickstart strong { font-size: 11px; color: #324d73; }
 .quickstart span { font-size: 10px; color: #8393aa; }
 .quickstart ol { margin: 9px 0 0 17px; padding: 0; color: #637894; font-size: 10px; line-height: 1.75; }
+.demo-builder {
+  margin: 16px 0 22px;
+  padding: 18px;
+  border: 1px solid #cbd8f8;
+  border-radius: 8px;
+  background: #f7f9ff;
+}
+.demo-builder h3 { margin: 0 0 6px; color: #172e62; font-size: 14px; }
+.demo-builder p, .demo-builder small { display: block; color: #506886; font-size: 11px; line-height: 1.6; }
+.demo-builder .control { margin: 12px 0; }
+.demo-builder .review { margin: 14px 0; }
+.saga-progress .connection-row { font-size: 11px; }
+.saga-progress .actions { margin-top: 18px; flex-wrap: wrap; }
 .readiness-panel { padding-bottom: 12px; }
 .readiness-panel .section-heading { margin-bottom: 8px; }
 .readiness-row {

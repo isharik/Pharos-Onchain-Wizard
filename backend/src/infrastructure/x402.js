@@ -11,7 +11,7 @@ const httpsUrl = (value) => {
 
 const fetchWithTimeout = async (url, options = {}) => {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 15_000);
+  const timer = setTimeout(() => controller.abort(), 50_000);
   try {
     return await fetch(url, {
       ...options,
@@ -50,15 +50,17 @@ export async function settleX402Payment(ctx, input) {
   const endpoint = httpsUrl(input.endpoint).toString();
   requireThat(/^0x[0-9a-fA-F]{64}$/.test(input.txHash), "A valid transaction hash is required");
   requireThat(isAddress(input.payer), "A valid payer address is required");
-  requireThat(/^\d+$/.test(input.budget) && /^\d+$/.test(input.priceCap), "Budget and price cap must be whole base units");
-  requireThat(typeof input.task === "string" && input.task.trim().length >= 3 && input.task.length <= 500, "A task description is required");
-
   const txKey = `x402:transaction:${input.txHash.toLowerCase()}`;
   const existing = ctx.store.get(txKey);
   if (existing) {
     requireThat(existing.endpoint === endpoint, "This payment transaction was already used for another resource", "X402_REUSED_PAYMENT");
     return { ...existing, duplicate: true };
   }
+  requireThat(typeof input.sessionId === "string" && /^[\w-]{1,100}$/.test(input.sessionId), "A valid buyer session is required");
+  const session = ctx.store.get(`x402:session:${input.sessionId}`);
+  requireThat(session, "Buyer session was not found. Inspect the offers again before paying.", "X402_SESSION_NOT_FOUND");
+  const approvedOffer = session.offers.find((item) => item.endpoint === endpoint);
+  requireThat(approvedOffer, "This endpoint was not approved by the buyer session", "X402_OFFER_NOT_FOUND");
 
   const challengeResponse = await fetchWithTimeout(endpoint);
   const challengeText = await challengeResponse.text();
@@ -67,11 +69,20 @@ export async function settleX402Payment(ctx, input) {
   try { challengeBody = JSON.parse(challengeText); } catch { challengeBody = {}; }
   const quote = offer(challengeResponse, challengeBody);
   requireThat(quote.scheme === "pharos-native-transfer", "This buyer currently supports the Pharos native-transfer x402 scheme", "X402_UNSUPPORTED");
-  const price = BigInt(quote.amount), cap = BigInt(input.priceCap), budget = BigInt(input.budget);
+  requireThat(
+    quote.amount === approvedOffer.price &&
+      quote.payTo.toLowerCase() === approvedOffer.payTo.toLowerCase() &&
+      quote.chainId === approvedOffer.chainId &&
+      quote.asset === approvedOffer.asset &&
+      quote.network === approvedOffer.network,
+    "Payment terms changed since inspection. Start a new buyer session; do not send another payment for this offer.",
+    "X402_TERMS_CHANGED",
+  );
+  const price = BigInt(quote.amount), cap = BigInt(session.priceCap), budget = BigInt(session.budget);
   requireThat(price <= cap, "Per-call price cap exceeded", "X402_PRICE_CAP");
   const ledger = ctx.store.get("x402:ledger", []);
   const spent = ledger
-    .filter((item) => item.task === input.task)
+    .filter((item) => item.sessionId === input.sessionId)
     .reduce((total, item) => total + BigInt(item.price || "0"), 0n);
   requireThat(spent + price <= budget, "Total budget exceeded", "X402_BUDGET");
 
@@ -87,11 +98,13 @@ export async function settleX402Payment(ctx, input) {
   const receipt = decodeReceipt(paid, paidBody);
   requireThat(receipt?.success === true, "Facilitator did not confirm payment settlement", "X402_SETTLEMENT_FAILED");
   requireThat(String(receipt.transaction || "").toLowerCase() === input.txHash.toLowerCase(), "Facilitator receipt does not match the submitted transaction", "X402_SETTLEMENT_FAILED");
+  requireThat(paidText.length <= 100_000, "Paid API response is too large to retain as evidence", "X402_RESPONSE_TOO_LARGE");
 
   const item = {
     id: createHash("sha256").update(`${endpoint}:${input.txHash.toLowerCase()}`).digest("hex"),
+    sessionId: input.sessionId,
     endpoint,
-    task: input.task,
+    task: session.task,
     resource: receipt.resource || quote.resource,
     price: quote.amount,
     asset: quote.asset,
@@ -102,6 +115,8 @@ export async function settleX402Payment(ctx, input) {
     blockNumber: receipt.blockNumber || null,
     status: "settled",
     settledAt: new Date().toISOString(),
+    runningTotal: (spent + price).toString(),
+    resourceData: paidBody.data ?? paidBody.result ?? paidBody,
   };
   ctx.store.atomic(() => {
     const again = ctx.store.get(txKey);
@@ -111,7 +126,14 @@ export async function settleX402Payment(ctx, input) {
     ctx.store.set("x402:ledger", [item, ...all].slice(0, 200));
     ctx.store.event(`x402:settled:${item.id}`, "x402-payment", item);
   });
-  return { ...item, runningTotal: (spent + price).toString(), receipt };
+  const completedPayments = ctx.store.get("x402:ledger", [])
+    .filter((payment) => payment.sessionId === input.sessionId);
+  return {
+    ...item,
+    receipt,
+    taskComplete: session.offers.every((approved) =>
+      completedPayments.some((payment) => payment.endpoint === approved.endpoint)),
+  };
 }
 
 export function x402Ledger(ctx) {

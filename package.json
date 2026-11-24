@@ -9,9 +9,10 @@
   "scripts": {
     "dev": "node --env-file-if-exists=.env backend/src/server.js",
     "dev:ui": "vite --config frontend/vite.config.js",
-    "build": "vite build --config frontend/vite.config.js",
+    "build": "vite build --config frontend/vite.config.js --configLoader runner",
     "start": "node --env-file-if-exists=.env backend/src/server.js",
     "test": "node --test backend/test/*.test.js",
+    "test:contract": "node scripts/check-saga-contract.js",
     "test:live": "node --env-file-if-exists=.env scripts/live-check.js",
     "cli": "node --env-file-if-exists=.env scripts/cli.js"
   },
@@ -27,6 +28,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "solc": "0.8.24",
     "vite": "^7.1.0"
   },
   "optionalDependencies": {

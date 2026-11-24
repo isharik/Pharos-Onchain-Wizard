@@ -12,7 +12,8 @@ export const schema = z.object({
 });
 const timeoutFetch = async (url) => {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 12_000);
+  // Free hosted sellers may need a cold start; Vercel's function limit is 60s.
+  const timer = setTimeout(() => controller.abort(), 50_000);
   try { return await fetch(url, { signal: controller.signal, redirect: "error", headers: { accept: "application/json" } }); }
   finally { clearTimeout(timer); }
 };
@@ -39,7 +40,8 @@ export function offer(response, body) {
   };
 }
 export async function execute(ctx, input) {
-  let spent = 0n;
+  const sessionId = ctx.runId;
+  let quotedSpend = 0n;
   const ledger = [];
   for (const endpoint of input.endpoints) {
     const id = createHash("sha256").update(`${ctx.runId}:${endpoint}`).digest("hex");
@@ -52,21 +54,30 @@ export async function execute(ctx, input) {
       }
       let body; try { body = JSON.parse(text); } catch { body = {}; }
       const quote = offer(response, body), price = BigInt(quote.amount), budget = BigInt(input.budget), cap = BigInt(input.priceCap);
-      const permitted = price <= cap && spent + price <= budget;
-      const row = { id, endpoint, status: permitted ? "approval-required" : "refused", price: quote.amount, asset: quote.asset, payTo: quote.payTo, scheme: quote.scheme, network: quote.network, chainId: quote.chainId, resource: quote.resource, runningTotal: spent.toString(), reason: permitted ? "Explicit wallet approval is required before any x402 payment." : price > cap ? "Per-call price cap exceeded." : "Total budget exceeded." };
-      if (permitted) spent += price;
-      row.runningTotal = spent.toString();
-      ctx.store.event(`x402:${id}`, "x402-payment", row);
+      const supported = quote.scheme === "pharos-native-transfer" && quote.network === "eip155:688689" && quote.chainId === 688689 && quote.asset === "native:PHRS";
+      const permitted = supported && price <= cap && quotedSpend + price <= budget;
+      const row = { id, sessionId, endpoint, status: permitted ? "approval-required" : "refused", price: quote.amount, asset: quote.asset, payTo: quote.payTo, scheme: quote.scheme, network: quote.network, chainId: quote.chainId, resource: quote.resource, reason: permitted ? "Explicit wallet approval is required before any x402 payment." : !supported ? "This endpoint uses an unsupported payment scheme or network." : price > cap ? "Per-call price cap exceeded." : "Total budget exceeded." };
+      if (permitted) quotedSpend += price;
+      row.projectedTotal = quotedSpend.toString();
+      ctx.store.event(`x402:${id}`, "x402-offer", row);
       ledger.push(row);
     } catch (error) {
       ledger.push({ endpoint, status: "failed", reason: error.message, retrySafe: true });
     }
   }
+  ctx.store.set(`x402:session:${sessionId}`, {
+    task: input.task,
+    budget: input.budget,
+    priceCap: input.priceCap,
+    offers: ledger.filter((item) => item.status === "approval-required"),
+  });
   return {
+    sessionId,
     task: input.task,
     ledger,
     offers: ledger.filter((item) => item.status === "approval-required"),
-    spent: spent.toString(),
+    spent: "0",
+    quotedSpend: quotedSpend.toString(),
     budget: input.budget,
     completed: false,
     nextStep: "Review each accepted offer and explicitly sign from your browser wallet. Payment confirmation is retained by transaction hash; this application never auto-signs or counts a payment twice.",

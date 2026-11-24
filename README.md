@@ -68,6 +68,7 @@ npm run test:live
 - Event/Log Monitor has a WPROS Transfer example in `config/events-live.json`.
 - Multi-Protocol Aggregator includes two verified Pharos mainnet ERC-4626 vaults in `config/aggregator-live.json`.
 - X402 Agent Buyer supports OctoBot's public Pharos Atlantic x402 routes: `/data` (0.005 PHRS) and `/premium` (0.01 PHRS). It switches a browser wallet to chain `688689`, receives an explicit signature, then replays the facilitator request with a settlement proof.
+- For reviewer evidence, follow [the paid x402 and on-chain saga runbook](docs/reviewer-runs.md). The included `SagaDemo.sol` contract provides three receipt-gated Atlantic transitions and a reversible forced-failure path; deploy it from your own wallet before the saga run. The buyer keeps a pending hash for safe settlement retries and displays the purchased API responses.
 
 ## Configuration
 

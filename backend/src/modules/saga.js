@@ -21,6 +21,7 @@ export async function execute(ctx, input) {
   const fingerprint = JSON.stringify(input.steps);
   const state = ctx.store.get(key, {
     fingerprint,
+    totalSteps: input.steps.length,
     index: 0,
     status: "running",
     completed: [],
@@ -71,7 +72,7 @@ export async function execute(ctx, input) {
         return { ...state, intent: reconciled };
       }
       state.completed = state.completed.filter((i) => i !== index);
-      log({ step: index, state: "compensated", hash: reconciled.hash });
+      log({ step: index, state: "compensated", hash: reconciled.hash, blockNumber: reconciled.receipt?.blockNumber });
     }
     state.status = "compensated";
     log({ state: "compensated" });
@@ -121,7 +122,7 @@ export async function execute(ctx, input) {
     }
     state.completed.push(index);
     state.index++;
-    log({ step: index, state: "confirmed", hash: verified.hash });
+    log({ step: index, state: "confirmed", hash: verified.hash, blockNumber: verified.receipt?.blockNumber });
   }
   state.status = "complete";
   log({ state: "complete" });

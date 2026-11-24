@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Play, Clock, Copy, ExternalLink } from "lucide-react";
+import { Interface, keccak256, parseEther, toQuantity, toUtf8Bytes, isAddress } from "ethers";
 import { api } from "./api.js";
 import { FeatureField } from "./forms.jsx";
 
@@ -100,6 +101,13 @@ const modeByFeature = {
   "x402-buyer": "Budget-gated API purchase",
 };
 const dependencyLabels = { rpc: "Pharos RPC", chain: "Chain MCP", docs: "Developer Docs", wallet: "Wallet", channel: "Alert channel" };
+const sagaDemoAbi = new Interface([
+  "function start(bytes32 runId) payable",
+  "function advance(bytes32 runId)",
+  "function finish(bytes32 runId, bool forceFailure)",
+  "function rewind(bytes32 runId)",
+  "function recover(bytes32 runId)",
+]);
 function StatusBadge({ status }) {
   const good = ["connected", "configured", "succeeded"];
   const bad = ["failed", "unavailable", "not connected", "not configured"];
@@ -268,7 +276,14 @@ export default function Workspace({ module, network, account, refresh, health, c
     [history, setHistory] = useState([]),
     [jobs, setJobs] = useState([]),
     [x402Approvals, setX402Approvals] = useState({}),
-    [x402Payments, setX402Payments] = useState([]);
+    [x402Payments, setX402Payments] = useState([]),
+    [demoContract, setDemoContract] = useState(""),
+    [demoAmount, setDemoAmount] = useState("0.001"),
+    [demoFailure, setDemoFailure] = useState(false),
+    [pendingX402, setPendingX402] = useState(() => {
+      try { return JSON.parse(localStorage.getItem("pharos:x402:pending") || "null"); }
+      catch { return null; }
+    });
   const dependencyStatus = (dependency) => {
     if (dependency === "wallet") return account ? "connected" : "not connected";
     if (dependency === "channel") return configuration?.channelConfigured ? "configured" : "not configured";
@@ -312,12 +327,39 @@ export default function Workspace({ module, network, account, refresh, health, c
       ]),
     );
   }
-  async function execute() {
+  function fillSagaDemo() {
+    try {
+      if (network.chainId !== 688689) throw new Error("Set PHAROS_NETWORK=atlantic-testnet on the server and reload before preparing this Atlantic run.");
+      if (!account) throw new Error("Connect your Atlantic wallet first.");
+      if (!isAddress(demoContract)) throw new Error("Enter the deployed SagaDemo contract address.");
+      const value = toQuantity(parseEther(demoAmount));
+      if (BigInt(value) <= 0n) throw new Error("Escrow must be greater than zero.");
+      const sagaId = `atlantic-${crypto.randomUUID()}`;
+      const runId = keccak256(toUtf8Bytes(sagaId));
+      const tx = (method, args, amount = "0x0") => ({
+        from: account,
+        to: demoContract,
+        value: amount,
+        data: sagaDemoAbi.encodeFunctionData(method, args),
+      });
+      const steps = [
+        { name: "Fund escrow", transaction: tx("start", [runId], value), compensation: tx("recover", [runId]) },
+        { name: "Advance escrow state", transaction: tx("advance", [runId]), compensation: tx("rewind", [runId]) },
+        { name: demoFailure ? "Force safe preflight failure" : "Finish and refund", transaction: tx("finish", [runId, demoFailure]), compensation: null },
+      ];
+      setValues((current) => ({ ...current, sagaId, operation: "advance", steps: JSON.stringify(steps, null, 2) }));
+      setRun(null);
+      setIntent(null);
+      setError("");
+      setNotice(`Prepared ${demoFailure ? "failure and recovery" : "success"} run ${sagaId}. Review all transactions before signing.`);
+    } catch (e) { setError(e.message); }
+  }
+  async function execute(overrides = {}) {
     setBusy(true);
     setError("");
     setNotice("");
     try {
-      const result = await api(`/run/${module.id}`, input(), {
+      const result = await api(`/run/${module.id}`, { ...input(), ...overrides }, {
         "idempotency-key": crypto.randomUUID(),
       });
       setRun(result);
@@ -362,20 +404,28 @@ export default function Workspace({ module, network, account, refresh, health, c
       const accounts = await window.ethereum.request({ method: "eth_accounts" });
       const payer = accounts[0];
       if (!payer) throw new Error("Connect a wallet account before paying.");
-      const transactionHash = await window.ethereum.request({
+      if (pendingX402 && (pendingX402.endpoint !== offer.endpoint || pendingX402.sessionId !== offer.sessionId))
+        throw new Error("Verify the existing pending payment before starting another purchase.");
+      if (pendingX402 && pendingX402.payer.toLowerCase() !== payer.toLowerCase())
+        throw new Error("Select the wallet account that sent the pending transaction.");
+      const transactionHash = pendingX402?.txHash || await window.ethereum.request({
         method: "eth_sendTransaction",
         params: [{ from: payer, to: offer.payTo, value: "0x" + BigInt(offer.price).toString(16), data: "0x" }],
       });
+      if (!pendingX402) {
+        const pending = { endpoint: offer.endpoint, sessionId: offer.sessionId, txHash: transactionHash, payer, offer };
+        setPendingX402(pending);
+        try { localStorage.setItem("pharos:x402:pending", JSON.stringify(pending)); }
+        catch { /* The visible in-memory recovery card still retains the hash. */ }
+      }
       let settlement;
       for (let attempt = 0; attempt < 5; attempt += 1) {
         try {
           settlement = await api("/x402/settle", {
             endpoint: offer.endpoint,
+            sessionId: offer.sessionId,
             txHash: transactionHash,
             payer,
-            task: values.task,
-            budget: values.budget,
-            priceCap: values.priceCap,
           });
           break;
         } catch (settleError) {
@@ -385,10 +435,12 @@ export default function Workspace({ module, network, account, refresh, health, c
         }
       }
       setX402Payments((items) => [settlement, ...items.filter((item) => item.transactionHash !== settlement.transactionHash)]);
-      setNotice(`Payment settled for ${settlement.resource}. Transaction: ${settlement.transactionHash}`);
+      try { localStorage.removeItem("pharos:x402:pending"); } catch { /* Storage may be disabled. */ }
+      setPendingX402(null);
+      setNotice(`${settlement.taskComplete ? "Task complete: both paid resources retrieved. " : "Payment settled. "}${settlement.resource} · transaction ${settlement.transactionHash}`);
       await load();
     } catch (e) {
-      setError(e.message);
+      setError(e.message + (pendingX402 ? " Your transaction hash was saved. Use Verify existing payment; do not pay again." : ""));
     } finally {
       setBusy(false);
     }
@@ -656,6 +708,28 @@ export default function Workspace({ module, network, account, refresh, health, c
                 {quickstarts[module.id].map((item) => <li key={item}>{item}</li>)}
               </ol>
             </div>
+            {module.id === "saga" && (
+              <div className="demo-builder">
+                <h3>Atlantic on-chain walkthrough</h3>
+                <p>Deploy the included SagaDemo contract once, then generate three dependent calls. Each call and recovery step is signed in your wallet and verified by receipt.</p>
+                <label className="control"><span>Deployed SagaDemo address</span><input value={demoContract} onChange={(e) => setDemoContract(e.target.value.trim())} placeholder="0x…" /></label>
+                <label className="control"><span>Escrow (PHRS)</span><input value={demoAmount} onChange={(e) => setDemoAmount(e.target.value)} inputMode="decimal" /></label>
+                <label className="review"><input type="checkbox" checked={demoFailure} onChange={(e) => setDemoFailure(e.target.checked)} />Force step three to fail before broadcast, then recover on chain</label>
+                <button type="button" className="secondary" onClick={fillSagaDemo}>Fill three-step workflow</button>
+                <small>For a success run leave the box unchecked. Use a new workflow ID for the failure run. A failed simulation is recorded without spending gas on a reverting transaction.</small>
+              </div>
+            )}
+            {module.id === "x402-buyer" && (
+              <div className="demo-builder">
+                <h3>OctoBot Atlantic paid APIs</h3>
+                <p>Load the two live endpoints, then inspect their current prices. Each preset sets a budget only; it does not make a payment.</p>
+                <div className="actions">
+                  <button type="button" className="secondary" onClick={() => setValues((current) => ({ ...current, task: `OctoBot full purchase ${crypto.randomUUID()}`, endpoints: JSON.stringify(["https://octobot-x402-facilitator.onrender.com/data", "https://octobot-x402-facilitator.onrender.com/premium"]), budget: "15000000000000000", priceCap: "10000000000000000" }))}>Load full purchase</button>
+                  <button type="button" className="secondary" onClick={() => setValues((current) => ({ ...current, task: `OctoBot budget stop ${crypto.randomUUID()}`, endpoints: JSON.stringify(["https://octobot-x402-facilitator.onrender.com/data", "https://octobot-x402-facilitator.onrender.com/premium"]), budget: "5000000000000000", priceCap: "10000000000000000" }))}>Load budget-stop run</button>
+                </div>
+                <small>Budgets are wei: 0.015 PHRS for both calls or 0.005 PHRS to stop before the second. The buyer checks the live price before approval.</small>
+              </div>
+            )}
             <form
               ref={formRef}
               onSubmit={(e) => {
@@ -787,6 +861,25 @@ export default function Workspace({ module, network, account, refresh, health, c
                 </div>
               )}
             </section>
+            {module.id === "saga" && run?.result && (
+              <section className="panel saga-progress">
+                <h2>Workflow progress</h2>
+                <p>Status: <strong>{run.result.status}</strong> · Completed steps: {run.result.completed?.length || 0}/{run.result.totalSteps || 3}</p>
+                <p className="feature-note">Sign the prepared transaction, verify its receipt, then advance again. After a permanent failure, recover in reverse order and sign each compensation.</p>
+                {(run.result.trace || []).map((entry, i) => (
+                  <div className="connection-row" key={i}>
+                    <span>{new Date(entry.time).toLocaleString()} · {entry.step === undefined ? "Workflow" : `Step ${entry.step + 1}`} · {entry.state}</span>
+                    {entry.error?.message && <small>{entry.error.message}</small>}
+                    {entry.hash && <a href={`${network.explorer}/tx/${entry.hash}`} target="_blank" rel="noreferrer">Transaction ↗</a>}
+                  </div>
+                ))}
+                <div className="actions">
+                  {run.result.status === "running" && <button className="primary" disabled={busy} onClick={() => execute({ operation: "advance" })}>Check receipt & advance</button>}
+                  {["failed", "compensating", "manual-recovery"].includes(run.result.status) && <button className="primary" disabled={busy} onClick={() => execute({ operation: "recover" })}>Prepare / check recovery</button>}
+                  <button className="secondary" disabled={busy} onClick={() => execute({ operation: "inspect" })}>Inspect saved state</button>
+                </div>
+              </section>
+            )}
             {module.id === "x402-buyer" && run?.result?.offers?.length > 0 && (
               <section className="panel">
                 <div className="section-heading">
@@ -796,26 +889,39 @@ export default function Workspace({ module, network, account, refresh, health, c
                   </div>
                 </div>
                 <div className="output-list">
+                  <p className="feature-note">{run.result.offers.filter((offer) => x402Payments.some((payment) => payment.sessionId === run.result.sessionId && payment.endpoint === offer.endpoint)).length}/{run.result.offers.length} resources purchased · budget {run.result.budget} base units</p>
                   {run.result.offers.map((offer) => {
                     const approved = x402Approvals[offer.id] || false;
-                    const paid = x402Payments.find((payment) => payment.endpoint === offer.endpoint);
+                    const paid = x402Payments.find((payment) => payment.sessionId === run.result.sessionId && payment.endpoint === offer.endpoint);
                     return <div className="output-item" key={offer.id}>
                       <strong>{offer.resource}</strong>
                       <small>{offer.endpoint}</small>
                       <span>{offer.price} base units · {offer.asset} · chain {offer.chainId}</span>
                       <small>Pay to: {offer.payTo}</small>
-                      {paid ? <span>Settled: {paid.transactionHash}</span> : <>
+                      {paid ? <>
+                        <a href={`https://atlantic.pharosscan.xyz/tx/${paid.transactionHash}`} target="_blank" rel="noreferrer">Settled transaction: {paid.transactionHash} <ExternalLink size={12} /></a>
+                        <small>Running spend: {paid.runningTotal} base units</small>
+                        <details><summary>Purchased API result</summary><pre>{JSON.stringify(paid.resourceData, null, 2)}</pre></details>
+                      </> : <>
                         <label className="review">
                           <input type="checkbox" checked={approved} onChange={(e) => setX402Approvals((items) => ({ ...items, [offer.id]: e.target.checked }))} />
                           I reviewed the endpoint, price, recipient, and requested network.
                         </label>
-                        <button className="primary" disabled={!approved || busy} onClick={() => payX402(offer)}>
+                        <button className="primary" disabled={!approved || busy || !!pendingX402} onClick={() => payX402(offer)}>
                           Pay & unlock in wallet
                         </button>
                       </>}
                     </div>;
                   })}
                 </div>
+              </section>
+            )}
+            {module.id === "x402-buyer" && pendingX402 && (
+              <section className="panel" role="status">
+                <h2>Payment awaiting verification</h2>
+                <p className="feature-note">The wallet already returned a transaction hash. Verify this payment before starting another; verification never sends another transaction.</p>
+                <a href={`https://atlantic.pharosscan.xyz/tx/${pendingX402.txHash}`} target="_blank" rel="noreferrer">View transaction {pendingX402.txHash} <ExternalLink size={12} /></a>
+                <div className="actions"><button className="secondary" disabled={busy} onClick={() => payX402(pendingX402.offer)}>Verify existing payment</button></div>
               </section>
             )}
             {intent && (
